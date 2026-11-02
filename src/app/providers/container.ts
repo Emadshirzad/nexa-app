@@ -8,12 +8,14 @@ import type { IAppSettingsRepository } from '@/domain/repositories/IAppSettingsR
 import type { IProductRepository } from '@/domain/repositories/IProductRepository';
 import type { ICategoryRepository } from '@/domain/repositories/ICategoryRepository';
 import type { IStockMovementRepository } from '@/domain/repositories/IStockMovementRepository';
+import type { ICustomerRepository } from '@/domain/repositories/ICustomerRepository';
 
 import { SqliteBusinessProfileRepository } from '@/infrastructure/repositories/SqliteBusinessProfileRepository';
 import { SqliteAppSettingsRepository } from '@/infrastructure/repositories/SqliteAppSettingsRepository';
 import { SqliteProductRepository } from '@/infrastructure/repositories/SqliteProductRepository';
 import { SqliteCategoryRepository } from '@/infrastructure/repositories/SqliteCategoryRepository';
 import { SqliteStockMovementRepository } from '@/infrastructure/repositories/SqliteStockMovementRepository';
+import { SqliteCustomerRepository } from '@/infrastructure/repositories/SqliteCustomerRepository';
 
 import { SetupBusinessProfileUseCase } from '@/application/use-cases/profile/SetupBusinessProfileUseCase';
 import { GetBusinessProfileUseCase } from '@/application/use-cases/profile/GetBusinessProfileUseCase';
@@ -21,6 +23,9 @@ import { CreateProductUseCase } from '@/application/use-cases/products/CreatePro
 import { AdjustStockUseCase } from '@/application/use-cases/products/AdjustStockUseCase';
 import { ArchiveProductUseCase } from '@/application/use-cases/products/ArchiveProductUseCase';
 import { StockReconciliationService } from '@/domain/services/StockReconciliationService';
+import { CreateCustomerUseCase } from '@/application/use-cases/customers/CreateCustomerUseCase';
+import { UpdateCustomerUseCase } from '@/application/use-cases/customers/UpdateCustomerUseCase';
+import { ArchiveCustomerUseCase } from '@/application/use-cases/customers/ArchiveCustomerUseCase';
 
 export interface AppContainer {
   database: IDatabaseDriver;
@@ -29,6 +34,7 @@ export interface AppContainer {
   productRepo: IProductRepository;
   categoryRepo: ICategoryRepository;
   stockMovementRepo: IStockMovementRepository;
+  customerRepo: ICustomerRepository;
 
   setupBusinessProfileUseCase: SetupBusinessProfileUseCase;
   getBusinessProfileUseCase: GetBusinessProfileUseCase;
@@ -36,6 +42,9 @@ export interface AppContainer {
   adjustStockUseCase: AdjustStockUseCase;
   archiveProductUseCase: ArchiveProductUseCase;
   stockReconciliationService: StockReconciliationService;
+  createCustomerUseCase: CreateCustomerUseCase;
+  updateCustomerUseCase: UpdateCustomerUseCase;
+  archiveCustomerUseCase: ArchiveCustomerUseCase;
 }
 
 let containerInstance: AppContainer | null = null;
@@ -61,6 +70,7 @@ export async function initializeAppContainer(): Promise<AppContainer> {
   const productRepo = new SqliteProductRepository(driver);
   const categoryRepo = new SqliteCategoryRepository(driver);
   const stockMovementRepo = new SqliteStockMovementRepository(driver);
+  const customerRepo = new SqliteCustomerRepository(driver);
 
   // 5. Instantiate use cases & services
   const setupBusinessProfileUseCase = new SetupBusinessProfileUseCase(profileRepo);
@@ -69,6 +79,9 @@ export async function initializeAppContainer(): Promise<AppContainer> {
   const adjustStockUseCase = new AdjustStockUseCase(productRepo, stockMovementRepo, driver);
   const archiveProductUseCase = new ArchiveProductUseCase(productRepo);
   const stockReconciliationService = new StockReconciliationService(productRepo, stockMovementRepo);
+  const createCustomerUseCase = new CreateCustomerUseCase(customerRepo);
+  const updateCustomerUseCase = new UpdateCustomerUseCase(customerRepo);
+  const archiveCustomerUseCase = new ArchiveCustomerUseCase(customerRepo);
 
   containerInstance = {
     database: driver,
@@ -77,12 +90,16 @@ export async function initializeAppContainer(): Promise<AppContainer> {
     productRepo,
     categoryRepo,
     stockMovementRepo,
+    customerRepo,
     setupBusinessProfileUseCase,
     getBusinessProfileUseCase,
     createProductUseCase,
     adjustStockUseCase,
     archiveProductUseCase,
-    stockReconciliationService
+    stockReconciliationService,
+    createCustomerUseCase,
+    updateCustomerUseCase,
+    archiveCustomerUseCase
   };
 
   return containerInstance;
