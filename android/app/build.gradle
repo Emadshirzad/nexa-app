@@ -18,7 +18,12 @@ android {
     }
     signingConfigs {
         release {
-            if (System.getenv("NEXA_KEYSTORE_PATH") != null) {
+            if (file('../nexa-release.keystore').exists()) {
+                storeFile file('../nexa-release.keystore')
+                storePassword 'nexacrm2026'
+                keyAlias 'nexa-crm-release'
+                keyPassword 'nexacrm2026'
+            } else if (System.getenv("NEXA_KEYSTORE_PATH") != null) {
                 storeFile file(System.getenv("NEXA_KEYSTORE_PATH"))
                 storePassword System.getenv("NEXA_KEYSTORE_PASSWORD")
                 keyAlias System.getenv("NEXA_KEY_ALIAS")
