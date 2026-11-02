@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">Nexa CRM</string>
-    <string name="title_activity_main">Nexa CRM</string>
-    <string name="package_name">com.nexa.crm</string>
-    <string name="custom_url_scheme">com.nexa.crm</string>
-</resources>
