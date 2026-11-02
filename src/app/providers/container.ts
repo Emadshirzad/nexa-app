@@ -11,6 +11,8 @@ import type { IStockMovementRepository } from '@/domain/repositories/IStockMovem
 import type { ICustomerRepository } from '@/domain/repositories/ICustomerRepository';
 import type { IInvoiceRepository } from '@/domain/repositories/IInvoiceRepository';
 import type { IPaymentRepository } from '@/domain/repositories/IPaymentRepository';
+import type { ILeadRepository } from '@/domain/repositories/ILeadRepository';
+import type { ITaskRepository } from '@/domain/repositories/ITaskRepository';
 
 import { SqliteBusinessProfileRepository } from '@/infrastructure/repositories/SqliteBusinessProfileRepository';
 import { SqliteAppSettingsRepository } from '@/infrastructure/repositories/SqliteAppSettingsRepository';
@@ -20,6 +22,8 @@ import { SqliteStockMovementRepository } from '@/infrastructure/repositories/Sql
 import { SqliteCustomerRepository } from '@/infrastructure/repositories/SqliteCustomerRepository';
 import { SqliteInvoiceRepository } from '@/infrastructure/repositories/SqliteInvoiceRepository';
 import { SqlitePaymentRepository } from '@/infrastructure/repositories/SqlitePaymentRepository';
+import { SqliteLeadRepository } from '@/infrastructure/repositories/SqliteLeadRepository';
+import { SqliteTaskRepository } from '@/infrastructure/repositories/SqliteTaskRepository';
 
 import { SetupBusinessProfileUseCase } from '@/application/use-cases/profile/SetupBusinessProfileUseCase';
 import { GetBusinessProfileUseCase } from '@/application/use-cases/profile/GetBusinessProfileUseCase';
@@ -33,6 +37,12 @@ import { ArchiveCustomerUseCase } from '@/application/use-cases/customers/Archiv
 import { CreateInvoiceUseCase } from '@/application/use-cases/invoices/CreateInvoiceUseCase';
 import { CancelInvoiceUseCase } from '@/application/use-cases/invoices/CancelInvoiceUseCase';
 import { RecordInvoicePaymentUseCase } from '@/application/use-cases/invoices/RecordInvoicePaymentUseCase';
+import { CreateLeadUseCase } from '@/application/use-cases/leads/CreateLeadUseCase';
+import { UpdateLeadUseCase } from '@/application/use-cases/leads/UpdateLeadUseCase';
+import { ConvertLeadToCustomerUseCase } from '@/application/use-cases/leads/ConvertLeadToCustomerUseCase';
+import { CreateTaskUseCase } from '@/application/use-cases/tasks/CreateTaskUseCase';
+import { CompleteTaskUseCase } from '@/application/use-cases/tasks/CompleteTaskUseCase';
+import { UpdateTaskUseCase } from '@/application/use-cases/tasks/UpdateTaskUseCase';
 
 export interface AppContainer {
   database: IDatabaseDriver;
@@ -44,6 +54,8 @@ export interface AppContainer {
   customerRepo: ICustomerRepository;
   invoiceRepo: IInvoiceRepository;
   paymentRepo: IPaymentRepository;
+  leadRepo: ILeadRepository;
+  taskRepo: ITaskRepository;
 
   setupBusinessProfileUseCase: SetupBusinessProfileUseCase;
   getBusinessProfileUseCase: GetBusinessProfileUseCase;
@@ -57,6 +69,12 @@ export interface AppContainer {
   createInvoiceUseCase: CreateInvoiceUseCase;
   cancelInvoiceUseCase: CancelInvoiceUseCase;
   recordInvoicePaymentUseCase: RecordInvoicePaymentUseCase;
+  createLeadUseCase: CreateLeadUseCase;
+  updateLeadUseCase: UpdateLeadUseCase;
+  convertLeadToCustomerUseCase: ConvertLeadToCustomerUseCase;
+  createTaskUseCase: CreateTaskUseCase;
+  completeTaskUseCase: CompleteTaskUseCase;
+  updateTaskUseCase: UpdateTaskUseCase;
 }
 
 let containerInstance: AppContainer | null = null;
@@ -85,6 +103,8 @@ export async function initializeAppContainer(): Promise<AppContainer> {
   const customerRepo = new SqliteCustomerRepository(driver);
   const invoiceRepo = new SqliteInvoiceRepository(driver);
   const paymentRepo = new SqlitePaymentRepository(driver);
+  const leadRepo = new SqliteLeadRepository(driver);
+  const taskRepo = new SqliteTaskRepository(driver);
 
   // 5. Instantiate use cases & services
   const setupBusinessProfileUseCase = new SetupBusinessProfileUseCase(profileRepo);
@@ -114,6 +134,12 @@ export async function initializeAppContainer(): Promise<AppContainer> {
     paymentRepo,
     driver
   );
+  const createLeadUseCase = new CreateLeadUseCase(leadRepo);
+  const updateLeadUseCase = new UpdateLeadUseCase(leadRepo);
+  const convertLeadToCustomerUseCase = new ConvertLeadToCustomerUseCase(leadRepo, customerRepo, driver);
+  const createTaskUseCase = new CreateTaskUseCase(taskRepo);
+  const completeTaskUseCase = new CompleteTaskUseCase(taskRepo);
+  const updateTaskUseCase = new UpdateTaskUseCase(taskRepo);
 
   containerInstance = {
     database: driver,
@@ -125,6 +151,8 @@ export async function initializeAppContainer(): Promise<AppContainer> {
     customerRepo,
     invoiceRepo,
     paymentRepo,
+    leadRepo,
+    taskRepo,
     setupBusinessProfileUseCase,
     getBusinessProfileUseCase,
     createProductUseCase,
@@ -136,7 +164,13 @@ export async function initializeAppContainer(): Promise<AppContainer> {
     archiveCustomerUseCase,
     createInvoiceUseCase,
     cancelInvoiceUseCase,
-    recordInvoicePaymentUseCase
+    recordInvoicePaymentUseCase,
+    createLeadUseCase,
+    updateLeadUseCase,
+    convertLeadToCustomerUseCase,
+    createTaskUseCase,
+    completeTaskUseCase,
+    updateTaskUseCase
   };
 
   return containerInstance;
