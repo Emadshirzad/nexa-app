@@ -16,8 +16,19 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            if (System.getenv("NEXA_KEYSTORE_PATH") != null) {
+                storeFile file(System.getenv("NEXA_KEYSTORE_PATH"))
+                storePassword System.getenv("NEXA_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("NEXA_KEY_ALIAS")
+                keyPassword System.getenv("NEXA_KEY_PASSWORD")
+            }
+        }
+    }
     buildTypes {
         release {
+            signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
