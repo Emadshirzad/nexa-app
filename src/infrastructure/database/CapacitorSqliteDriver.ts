@@ -14,6 +14,7 @@ export class CapacitorSqliteDriver implements IDatabaseDriver {
   private db: SQLiteDBConnection | null = null;
   private readonly options: CapacitorDriverOptions;
   private _isEncrypted: boolean = false;
+  private txDepth: number = 0;
 
   constructor(options: CapacitorDriverOptions) {
     this.options = {
@@ -72,18 +73,36 @@ export class CapacitorSqliteDriver implements IDatabaseDriver {
 
   public async transaction<T>(action: (driver: IDatabaseDriver) => Promise<T>): Promise<T> {
     await this.ensureOpen();
-    await this.db!.execute('BEGIN TRANSACTION;');
+    this.txDepth++;
+    const savepointName = `sp_${this.txDepth}`;
+
+    if (this.txDepth === 1) {
+      await this.db!.execute('BEGIN TRANSACTION;');
+    } else {
+      await this.db!.execute(`SAVEPOINT ${savepointName};`);
+    }
+
     try {
       const result = await action(this);
-      await this.db!.execute('COMMIT;');
+      if (this.txDepth === 1) {
+        await this.db!.execute('COMMIT;');
+      } else {
+        await this.db!.execute(`RELEASE SAVEPOINT ${savepointName};`);
+      }
       return result;
     } catch (error) {
       try {
-        await this.db!.execute('ROLLBACK;');
+        if (this.txDepth === 1) {
+          await this.db!.execute('ROLLBACK;');
+        } else {
+          await this.db!.execute(`ROLLBACK TO SAVEPOINT ${savepointName};`);
+        }
       } catch {
         // Rollback error ignored
       }
       throw error;
+    } finally {
+      this.txDepth--;
     }
   }
 

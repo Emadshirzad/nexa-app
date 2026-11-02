@@ -19,7 +19,7 @@ export const CreateProductSchema = z.object({
   minStockThreshold: z.number().min(0).default(0)
 });
 
-export type CreateProductDTO = z.infer<typeof CreateProductSchema>;
+export type CreateProductDTO = z.input<typeof CreateProductSchema>;
 
 export class CreateProductUseCase {
   private readonly productRepo: IProductRepository;
@@ -41,10 +41,11 @@ export class CreateProductUseCase {
     if (!parseRes.success) {
       return fail(parseRes.error.errors.map((e) => e.message).join('، '));
     }
+    const input = parseRes.data;
 
     try {
-      const sku = dto.sku && dto.sku.trim().length > 0
-        ? dto.sku.trim()
+      const sku = input.sku && input.sku.trim().length > 0
+        ? input.sku.trim()
         : await this.productRepo.getNextSkuSequence();
 
       // Check unique SKU
@@ -55,16 +56,16 @@ export class CreateProductUseCase {
 
       const now = new Date().toISOString();
       const productId = generateUUID();
-      const initialStockQty = StockQuantity.fromDecimal(dto.initialStock);
-      const minStockThresholdQty = StockQuantity.fromDecimal(dto.minStockThreshold);
-      const price = Money.fromToman(dto.sellingPrice);
+      const initialStockQty = StockQuantity.fromDecimal(input.initialStock);
+      const minStockThresholdQty = StockQuantity.fromDecimal(input.minStockThreshold);
+      const price = Money.fromToman(input.sellingPrice);
 
       const product = new Product({
         id: productId,
-        categoryId: dto.categoryId || null,
-        name: dto.name,
+        categoryId: input.categoryId || null,
+        name: input.name,
         sku,
-        unit: dto.unit as ProductUnit,
+        unit: input.unit as ProductUnit,
         sellingPrice: price,
         stockQuantity: initialStockQty,
         minStockThreshold: minStockThresholdQty,

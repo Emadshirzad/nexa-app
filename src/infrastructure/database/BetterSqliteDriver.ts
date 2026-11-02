@@ -4,6 +4,7 @@ import type { IDatabaseDriver } from './IDatabaseDriver';
 export class BetterSqliteDriver implements IDatabaseDriver {
   private db: Database.Database;
   private readonly dbPath: string;
+  private txDepth: number = 0;
 
   constructor(dbPath: string = ':memory:') {
     this.dbPath = dbPath;
@@ -32,20 +33,36 @@ export class BetterSqliteDriver implements IDatabaseDriver {
   }
 
   public async transaction<T>(action: (driver: IDatabaseDriver) => Promise<T>): Promise<T> {
-    // Note: better-sqlite3 supports transactions natively, but since action is async,
-    // we use standard SQL BEGIN / COMMIT / ROLLBACK.
-    await this.execute('BEGIN TRANSACTION;');
+    this.txDepth++;
+    const savepointName = `sp_${this.txDepth}`;
+
+    if (this.txDepth === 1) {
+      await this.execute('BEGIN TRANSACTION;');
+    } else {
+      await this.execute(`SAVEPOINT ${savepointName};`);
+    }
+
     try {
       const result = await action(this);
-      await this.execute('COMMIT;');
+      if (this.txDepth === 1) {
+        await this.execute('COMMIT;');
+      } else {
+        await this.execute(`RELEASE SAVEPOINT ${savepointName};`);
+      }
       return result;
     } catch (error) {
       try {
-        await this.execute('ROLLBACK;');
+        if (this.txDepth === 1) {
+          await this.execute('ROLLBACK;');
+        } else {
+          await this.execute(`ROLLBACK TO SAVEPOINT ${savepointName};`);
+        }
       } catch {
         // Rollback error ignored if already rolled back
       }
       throw error;
+    } finally {
+      this.txDepth--;
     }
   }
 

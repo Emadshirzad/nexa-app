@@ -9,6 +9,8 @@ import type { IProductRepository } from '@/domain/repositories/IProductRepositor
 import type { ICategoryRepository } from '@/domain/repositories/ICategoryRepository';
 import type { IStockMovementRepository } from '@/domain/repositories/IStockMovementRepository';
 import type { ICustomerRepository } from '@/domain/repositories/ICustomerRepository';
+import type { IInvoiceRepository } from '@/domain/repositories/IInvoiceRepository';
+import type { IPaymentRepository } from '@/domain/repositories/IPaymentRepository';
 
 import { SqliteBusinessProfileRepository } from '@/infrastructure/repositories/SqliteBusinessProfileRepository';
 import { SqliteAppSettingsRepository } from '@/infrastructure/repositories/SqliteAppSettingsRepository';
@@ -16,6 +18,8 @@ import { SqliteProductRepository } from '@/infrastructure/repositories/SqlitePro
 import { SqliteCategoryRepository } from '@/infrastructure/repositories/SqliteCategoryRepository';
 import { SqliteStockMovementRepository } from '@/infrastructure/repositories/SqliteStockMovementRepository';
 import { SqliteCustomerRepository } from '@/infrastructure/repositories/SqliteCustomerRepository';
+import { SqliteInvoiceRepository } from '@/infrastructure/repositories/SqliteInvoiceRepository';
+import { SqlitePaymentRepository } from '@/infrastructure/repositories/SqlitePaymentRepository';
 
 import { SetupBusinessProfileUseCase } from '@/application/use-cases/profile/SetupBusinessProfileUseCase';
 import { GetBusinessProfileUseCase } from '@/application/use-cases/profile/GetBusinessProfileUseCase';
@@ -26,6 +30,9 @@ import { StockReconciliationService } from '@/domain/services/StockReconciliatio
 import { CreateCustomerUseCase } from '@/application/use-cases/customers/CreateCustomerUseCase';
 import { UpdateCustomerUseCase } from '@/application/use-cases/customers/UpdateCustomerUseCase';
 import { ArchiveCustomerUseCase } from '@/application/use-cases/customers/ArchiveCustomerUseCase';
+import { CreateInvoiceUseCase } from '@/application/use-cases/invoices/CreateInvoiceUseCase';
+import { CancelInvoiceUseCase } from '@/application/use-cases/invoices/CancelInvoiceUseCase';
+import { RecordInvoicePaymentUseCase } from '@/application/use-cases/invoices/RecordInvoicePaymentUseCase';
 
 export interface AppContainer {
   database: IDatabaseDriver;
@@ -35,6 +42,8 @@ export interface AppContainer {
   categoryRepo: ICategoryRepository;
   stockMovementRepo: IStockMovementRepository;
   customerRepo: ICustomerRepository;
+  invoiceRepo: IInvoiceRepository;
+  paymentRepo: IPaymentRepository;
 
   setupBusinessProfileUseCase: SetupBusinessProfileUseCase;
   getBusinessProfileUseCase: GetBusinessProfileUseCase;
@@ -45,6 +54,9 @@ export interface AppContainer {
   createCustomerUseCase: CreateCustomerUseCase;
   updateCustomerUseCase: UpdateCustomerUseCase;
   archiveCustomerUseCase: ArchiveCustomerUseCase;
+  createInvoiceUseCase: CreateInvoiceUseCase;
+  cancelInvoiceUseCase: CancelInvoiceUseCase;
+  recordInvoicePaymentUseCase: RecordInvoicePaymentUseCase;
 }
 
 let containerInstance: AppContainer | null = null;
@@ -71,6 +83,8 @@ export async function initializeAppContainer(): Promise<AppContainer> {
   const categoryRepo = new SqliteCategoryRepository(driver);
   const stockMovementRepo = new SqliteStockMovementRepository(driver);
   const customerRepo = new SqliteCustomerRepository(driver);
+  const invoiceRepo = new SqliteInvoiceRepository(driver);
+  const paymentRepo = new SqlitePaymentRepository(driver);
 
   // 5. Instantiate use cases & services
   const setupBusinessProfileUseCase = new SetupBusinessProfileUseCase(profileRepo);
@@ -82,6 +96,24 @@ export async function initializeAppContainer(): Promise<AppContainer> {
   const createCustomerUseCase = new CreateCustomerUseCase(customerRepo);
   const updateCustomerUseCase = new UpdateCustomerUseCase(customerRepo);
   const archiveCustomerUseCase = new ArchiveCustomerUseCase(customerRepo);
+  const createInvoiceUseCase = new CreateInvoiceUseCase(
+    invoiceRepo,
+    productRepo,
+    stockMovementRepo,
+    paymentRepo,
+    driver
+  );
+  const cancelInvoiceUseCase = new CancelInvoiceUseCase(
+    invoiceRepo,
+    productRepo,
+    stockMovementRepo,
+    driver
+  );
+  const recordInvoicePaymentUseCase = new RecordInvoicePaymentUseCase(
+    invoiceRepo,
+    paymentRepo,
+    driver
+  );
 
   containerInstance = {
     database: driver,
@@ -91,6 +123,8 @@ export async function initializeAppContainer(): Promise<AppContainer> {
     categoryRepo,
     stockMovementRepo,
     customerRepo,
+    invoiceRepo,
+    paymentRepo,
     setupBusinessProfileUseCase,
     getBusinessProfileUseCase,
     createProductUseCase,
@@ -99,7 +133,10 @@ export async function initializeAppContainer(): Promise<AppContainer> {
     stockReconciliationService,
     createCustomerUseCase,
     updateCustomerUseCase,
-    archiveCustomerUseCase
+    archiveCustomerUseCase,
+    createInvoiceUseCase,
+    cancelInvoiceUseCase,
+    recordInvoicePaymentUseCase
   };
 
   return containerInstance;

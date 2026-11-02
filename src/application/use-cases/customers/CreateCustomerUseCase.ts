@@ -14,7 +14,7 @@ export const CreateCustomerSchema = z.object({
   tags: z.array(z.string()).default([])
 });
 
-export type CreateCustomerDTO = z.infer<typeof CreateCustomerSchema>;
+export type CreateCustomerDTO = z.input<typeof CreateCustomerSchema>;
 
 export class CreateCustomerUseCase {
   private readonly customerRepo: ICustomerRepository;

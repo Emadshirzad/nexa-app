@@ -40,6 +40,8 @@ export function toJalaliString(date: Date | string): string {
   return `${j.jy}/${month}/${day}`;
 }
 
+export const formatJalali = toJalaliString;
+
 /**
  * Formats a Jalali date with Persian month name:
  * e.g. "1405/08/11" -> "11 آبان 1405"
