@@ -29,12 +29,11 @@
 
         <div>
           <label class="block text-xs font-bold text-graphite-700 dark:text-gray-300 mb-1.5">
-            شماره همراه یا تلفن تماس <span class="text-red-500">*</span>
+            شماره همراه یا تلفن تماس
           </label>
           <input
             v-model="phoneNumber"
             type="tel"
-            required
             placeholder="09123456789"
             dir="ltr"
             class="w-full h-12 px-4 rounded-2xl bg-gray-50 dark:bg-graphite-900 border border-gray-200 dark:border-graphite-800 text-sm text-right focus:outline-none focus:border-emerald"
@@ -55,9 +54,10 @@
 
         <button
           type="submit"
-          class="w-full h-12 rounded-2xl bg-emerald text-white text-sm font-bold shadow-md shadow-emerald/20 hover:bg-emerald-600 active:scale-95 transition-all mt-4"
+          :disabled="isSubmitting"
+          class="w-full h-12 rounded-2xl bg-emerald text-white text-sm font-bold shadow-md shadow-emerald/20 hover:bg-emerald-600 active:scale-95 transition-all mt-4 disabled:opacity-50"
         >
-          ورود به برنامه
+          {{ isSubmitting ? 'در حال ثبت...' : 'ورود به برنامه' }}
         </button>
       </form>
     </div>
@@ -74,33 +74,48 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { Building2 } from 'lucide-vue-next';
 import { useUIStore } from '@/presentation/stores/uiStore';
+import { useContainer } from '@/presentation/composables/useContainer';
 
 const router = useRouter();
 const uiStore = useUIStore();
+const container = useContainer();
 
 const businessName = ref('');
 const phoneNumber = ref('');
 const description = ref('');
+const isSubmitting = ref(false);
 
-function handleSubmit() {
-  if (!businessName.value.trim()) return;
+async function handleSubmit() {
+  if (!businessName.value.trim() || isSubmitting.value) return;
 
-  // Save to localStorage or state for Phase 1
-  localStorage.setItem(
-    'nexa_business_profile',
-    JSON.stringify({
+  isSubmitting.value = true;
+  try {
+    const result = await container.setupBusinessProfileUseCase.execute({
       name: businessName.value.trim(),
-      phone: phoneNumber.value.trim(),
-      description: description.value.trim()
-    })
-  );
+      phone: phoneNumber.value.trim() || undefined,
+      description: description.value.trim() || undefined
+    });
 
-  uiStore.showToast({
-    type: 'success',
-    title: 'پروفایل ایجاد شد',
-    message: `به برنامه نکسا خوش آمدید.`
-  });
-
-  router.replace('/dashboard');
+    if (result.success) {
+      uiStore.showToast({
+        type: 'success',
+        title: 'پروفایل ایجاد شد',
+        message: `پروفایل ${result.data.name} با موفقیت در پایگاه داده ذخیره شد.`
+      });
+      router.replace('/dashboard');
+    } else {
+      uiStore.showToast({
+        type: 'error',
+        message: result.error
+      });
+    }
+  } catch (err) {
+    uiStore.showToast({
+      type: 'error',
+      message: 'خطا در ثبت پروفایل: ' + String(err)
+    });
+  } finally {
+    isSubmitting.value = false;
+  }
 }
 </script>
