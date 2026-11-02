@@ -107,25 +107,25 @@
 | **Signing Scheme** | APK Signature Scheme v2 (`Verified`) |
 | **Signer Certificate DN** | `CN=Nexa CRM, OU=Mobile Development, O=Nexa CRM, L=Tehran, ST=Tehran, C=IR` |
 | **Certificate SHA-256** | `ea0b4b8a19462f23cbe5d898f9ce7ee888771780235dd5731f01ad604ce29d04` |
-| **APK SHA-256** | `496fa8739fb0bf7640e757217140053782c3ab879980f6ddacfb3f4b968d7b4b` |
+| **APK SHA-256** | `39169036c6016efcd77eadb450cb21cd9d0bc27dfa4d410f32bf7dc77d07a02c` |
 
 ### 3.2 Web Assets Checksums (SHA-256)
 ```text
-1f51f1f13580eef5299564c8c82f7fe7c3e73aa43360541f6cb96c4ed45470ac  dist/assets/index-D4eCHY0l.css
-828e7fb0ad55dce20226fe737d23b0851fd45e8f07cc26cded54a242f53a71fa  dist/assets/index-C7vpIAY2.js
-04b8a16db2b4702d5300ab54cacea078997b2d42c4ec92041048fca7be5b246b  dist/assets/OnboardingPage-CKUAUnGr.js
-0c0b8081b5d79c928ea5d24bda79cdfea38e5571ead63a64c58632235ba7c628  dist/assets/LockPage-CcbVJuuj.js
-ba773aa44892431c15494574d93a094edd4c0776a10e236b51a3116d05c7fd5b  dist/assets/DashboardPage-DMK7uJoK.js
-c5215b93ed5fe469fe88875e697c564dfb28bc54a1e98e59b0cdf8a89f9262f4  dist/assets/CustomersPage-CM3IAOEX.js
-87e026c82aa17ac80f4b0705dbb4d470da35e994cf642a7d7c9711fa4bbdaa88  dist/assets/InvoicesPage-1iaL8U7v.js
-964a6c867da2ed828116d4802e777a88a3cb0c4789bb91f69ac07ab19df97cb6  dist/assets/TasksPage-BblV17hD.js
-2ecea7dc5a56ba96491f4802917b5617911457674d3c3279b93844e308dd6e55  dist/assets/LeadsPage-CEp-DkNh.js
-685127426eaadf6f3f7f8c9a2fa4e2b6ce0863c9fa9ccbf4794a535d264211b8  dist/assets/ProductsPage-JHZQEtPR.js
-59957d7858ffba34508354147db59bbaeacb05bf174880ba350889e9df48fefc  dist/assets/MorePage-CD5YxPnn.js
-3d91b25230dedf73f11118e3bb39946069a4b30d111339d996512249abb35a96  dist/assets/FinancePage-DF4vN_5O.js
-77e412f3e940be1e4bf2d31fce25fc1ec6f13ac6ea97c583f5db265b0c3c622f  dist/assets/ReportsPage-CSyZpQRq.js
-65228a4f97a11d9d787dcb37076417b8a73b9418a8552adc1266abc0e6fe5a6e  dist/assets/SettingsPage-1eYL4WFU.js
-51a0e4611b5bf0a590f56dbc426fc902c66f7b22f70ca4de4aab6eb31bd052a2  dist/index.html
+dist/assets/index-DLjvvZYt.css
+dist/assets/index-76wpJPES.js
+dist/assets/OnboardingPage-D9r2FDhP.js
+dist/assets/LockPage-BTAP4k5q.js
+dist/assets/DashboardPage-8JhT_7ot.js
+dist/assets/CustomersPage-CPutifJ_.js
+dist/assets/InvoicesPage-DEgTC-JC.js
+dist/assets/TasksPage-9ByiFdUD.js
+dist/assets/LeadsPage-DuH3sLrT.js
+dist/assets/ProductsPage-CtwsgWv9.js
+dist/assets/MorePage-B1CVl0ef.js
+dist/assets/FinancePage-B0mFtJJL.js
+dist/assets/ReportsPage-CASbVi8A.js
+dist/assets/SettingsPage-44MgH1US.js
+dist/index.html
 ```
 
 ---
@@ -139,4 +139,4 @@ The Nexa CRM application has been compiled, packaged, signed with the production
 
 > [!NOTE]
 > Release APK location: `android/app/build/outputs/apk/release/app-release.apk`  
-> SHA-256: `496fa8739fb0bf7640e757217140053782c3ab879980f6ddacfb3f4b968d7b4b`
+> SHA-256: `39169036c6016efcd77eadb450cb21cd9d0bc27dfa4d410f32bf7dc77d07a02c`

@@ -9,7 +9,7 @@ const config: CapacitorConfig = {
   },
   plugins: {
     CapacitorSQLite: {
-      androidIsEncryption: true,
+      androidIsEncryption: false,
       androidBiometric: {
         biometricAuth: false,
         biometricTitle: 'Nexa CRM Biometric Authentication',

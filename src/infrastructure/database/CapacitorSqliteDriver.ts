@@ -4,7 +4,7 @@ import type { IDatabaseDriver } from './IDatabaseDriver';
 export interface CapacitorDriverOptions {
   databaseName: string;
   encrypted?: boolean;
-  encryptionMode?: 'secret' | 'encryption';
+  encryptionMode?: 'secret' | 'encryption' | 'no-encryption';
   secret?: string;
   readonly?: boolean;
 }
@@ -18,37 +18,44 @@ export class CapacitorSqliteDriver implements IDatabaseDriver {
 
   constructor(options: CapacitorDriverOptions) {
     this.options = {
-      encrypted: true,
-      encryptionMode: 'secret',
+      encrypted: false,
+      encryptionMode: 'no-encryption',
       ...options
     };
+    // Strip trailing .db extension if passed, as the plugin appends SQLite.db automatically
+    this.options.databaseName = this.options.databaseName.replace(/\.db$/, '');
     this.sqlite = new SQLiteConnection(CapacitorSQLite);
   }
 
   public async initialize(): Promise<void> {
     if (this.db) return;
 
-    const isConnConsistent = (await this.sqlite.isConnection(this.options.databaseName, false)).result;
-    if (isConnConsistent) {
-      this.db = await this.sqlite.retrieveConnection(this.options.databaseName, false);
-    } else {
-      const encrypted = this.options.encrypted ?? false;
-      const mode = this.options.encryptionMode ?? (encrypted ? 'secret' : 'no-encryption');
+    try {
+      const isConnConsistent = (await this.sqlite.isConnection(this.options.databaseName, false)).result;
+      if (isConnConsistent) {
+        this.db = await this.sqlite.retrieveConnection(this.options.databaseName, false);
+      } else {
+        const encrypted = this.options.encrypted ?? false;
+        const mode = this.options.encryptionMode ?? (encrypted ? 'secret' : 'no-encryption');
 
-      this.db = await this.sqlite.createConnection(
-        this.options.databaseName,
-        encrypted,
-        mode,
-        1,
-        false
-      );
-      this._isEncrypted = encrypted;
+        this.db = await this.sqlite.createConnection(
+          this.options.databaseName,
+          encrypted,
+          mode,
+          1,
+          false
+        );
+        this._isEncrypted = encrypted;
+      }
+
+      await this.db.open();
+      // Enforce foreign key constraints and WAL journal mode
+      await this.db.execute('PRAGMA foreign_keys = ON;');
+      await this.db.execute('PRAGMA journal_mode = WAL;');
+    } catch (err) {
+      console.error('CapacitorSqliteDriver initialization failed:', err);
+      throw err;
     }
-
-    await this.db.open();
-    // Enforce foreign key constraints
-    await this.db.execute('PRAGMA foreign_keys = ON;');
-    await this.db.execute('PRAGMA journal_mode = WAL;');
   }
 
   public async execute(sql: string): Promise<void> {

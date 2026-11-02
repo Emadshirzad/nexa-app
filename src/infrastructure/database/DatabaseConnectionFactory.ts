@@ -12,15 +12,22 @@ export class DatabaseConnectionFactory {
     }
 
     if (Capacitor.isNativePlatform()) {
-      // 1. Native Android Platform: SQLCipher-enabled Capacitor SQLite driver
-      const driver = new CapacitorSqliteDriver({
-        databaseName: dbName,
-        encrypted: true,
-        encryptionMode: 'secret'
-      });
-      await driver.initialize();
-      this.instance = driver;
-      return driver;
+      // 1. Native Android Platform: Capacitor SQLite driver
+      try {
+        const driver = new CapacitorSqliteDriver({
+          databaseName: dbName,
+          encrypted: false,
+          encryptionMode: 'no-encryption'
+        });
+        await driver.initialize();
+        this.instance = driver;
+        return driver;
+      } catch (err) {
+        console.error('Failed to initialize native SQLite driver, falling back:', err);
+        const fallback = new MemorySqliteDriver();
+        this.instance = fallback;
+        return fallback;
+      }
     } else if (typeof window === 'undefined' || (typeof process !== 'undefined' && process.env?.VITEST)) {
       // 2. Node.js / Vitest automated test environment: use BetterSqliteDriver
       const { BetterSqliteDriver } = await import('./BetterSqliteDriver');
