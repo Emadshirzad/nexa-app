@@ -1,6 +1,7 @@
 <template>
   <div class="h-full flex flex-col bg-gray-50 dark:bg-graphite-950 text-graphite-900 dark:text-gray-100 overflow-hidden">
     <ToastContainer />
+    <GlobalSearchModal />
 
     <!-- Main Scrollable Screen Content -->
     <main class="flex-1 overflow-y-auto pb-20 overscroll-y-contain">
@@ -21,6 +22,7 @@
 <script setup lang="ts">
 import BottomNav from '@/presentation/components/common/BottomNav.vue';
 import ToastContainer from '@/presentation/components/common/ToastContainer.vue';
+import GlobalSearchModal from '@/presentation/components/common/GlobalSearchModal.vue';
 </script>
 
 <style scoped>

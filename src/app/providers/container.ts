@@ -15,6 +15,7 @@ import type { ILeadRepository } from '@/domain/repositories/ILeadRepository';
 import type { ITaskRepository } from '@/domain/repositories/ITaskRepository';
 import type { IExpenseRepository } from '@/domain/repositories/IExpenseRepository';
 import type { ICashLedgerRepository } from '@/domain/repositories/ICashLedgerRepository';
+import type { IReportingRepository } from '@/domain/repositories/IReportingRepository';
 
 import { SqliteBusinessProfileRepository } from '@/infrastructure/repositories/SqliteBusinessProfileRepository';
 import { SqliteAppSettingsRepository } from '@/infrastructure/repositories/SqliteAppSettingsRepository';
@@ -28,6 +29,7 @@ import { SqliteLeadRepository } from '@/infrastructure/repositories/SqliteLeadRe
 import { SqliteTaskRepository } from '@/infrastructure/repositories/SqliteTaskRepository';
 import { SqliteExpenseRepository } from '@/infrastructure/repositories/SqliteExpenseRepository';
 import { SqliteCashLedgerRepository } from '@/infrastructure/repositories/SqliteCashLedgerRepository';
+import { SqliteReportingRepository } from '@/infrastructure/repositories/SqliteReportingRepository';
 
 import { SetupBusinessProfileUseCase } from '@/application/use-cases/profile/SetupBusinessProfileUseCase';
 import { GetBusinessProfileUseCase } from '@/application/use-cases/profile/GetBusinessProfileUseCase';
@@ -50,6 +52,9 @@ import { UpdateTaskUseCase } from '@/application/use-cases/tasks/UpdateTaskUseCa
 import { RecordExpenseUseCase } from '@/application/use-cases/finance/RecordExpenseUseCase';
 import { RecordOtherIncomeUseCase } from '@/application/use-cases/finance/RecordOtherIncomeUseCase';
 import { GetFinancialSummaryUseCase } from '@/application/use-cases/finance/GetFinancialSummaryUseCase';
+import { GetDashboardMetricsUseCase } from '@/application/use-cases/dashboard/GetDashboardMetricsUseCase';
+import { GetReportsDataUseCase } from '@/application/use-cases/reports/GetReportsDataUseCase';
+import { GlobalSearchUseCase } from '@/application/use-cases/search/GlobalSearchUseCase';
 
 export interface AppContainer {
   database: IDatabaseDriver;
@@ -65,6 +70,7 @@ export interface AppContainer {
   taskRepo: ITaskRepository;
   expenseRepo: IExpenseRepository;
   cashLedgerRepo: ICashLedgerRepository;
+  reportingRepo: IReportingRepository;
 
   setupBusinessProfileUseCase: SetupBusinessProfileUseCase;
   getBusinessProfileUseCase: GetBusinessProfileUseCase;
@@ -87,6 +93,9 @@ export interface AppContainer {
   recordExpenseUseCase: RecordExpenseUseCase;
   recordOtherIncomeUseCase: RecordOtherIncomeUseCase;
   getFinancialSummaryUseCase: GetFinancialSummaryUseCase;
+  getDashboardMetricsUseCase: GetDashboardMetricsUseCase;
+  getReportsDataUseCase: GetReportsDataUseCase;
+  globalSearchUseCase: GlobalSearchUseCase;
 }
 
 let containerInstance: AppContainer | null = null;
@@ -119,6 +128,7 @@ export async function initializeAppContainer(): Promise<AppContainer> {
   const taskRepo = new SqliteTaskRepository(driver);
   const expenseRepo = new SqliteExpenseRepository(driver);
   const cashLedgerRepo = new SqliteCashLedgerRepository(driver);
+  const reportingRepo = new SqliteReportingRepository(driver);
 
   // 5. Instantiate use cases & services
   const setupBusinessProfileUseCase = new SetupBusinessProfileUseCase(profileRepo);
@@ -157,6 +167,9 @@ export async function initializeAppContainer(): Promise<AppContainer> {
   const recordExpenseUseCase = new RecordExpenseUseCase(expenseRepo);
   const recordOtherIncomeUseCase = new RecordOtherIncomeUseCase(expenseRepo);
   const getFinancialSummaryUseCase = new GetFinancialSummaryUseCase(cashLedgerRepo);
+  const getDashboardMetricsUseCase = new GetDashboardMetricsUseCase(reportingRepo);
+  const getReportsDataUseCase = new GetReportsDataUseCase(reportingRepo);
+  const globalSearchUseCase = new GlobalSearchUseCase(reportingRepo);
 
   containerInstance = {
     database: driver,
@@ -172,6 +185,7 @@ export async function initializeAppContainer(): Promise<AppContainer> {
     taskRepo,
     expenseRepo,
     cashLedgerRepo,
+    reportingRepo,
     setupBusinessProfileUseCase,
     getBusinessProfileUseCase,
     createProductUseCase,
@@ -192,7 +206,10 @@ export async function initializeAppContainer(): Promise<AppContainer> {
     updateTaskUseCase,
     recordExpenseUseCase,
     recordOtherIncomeUseCase,
-    getFinancialSummaryUseCase
+    getFinancialSummaryUseCase,
+    getDashboardMetricsUseCase,
+    getReportsDataUseCase,
+    globalSearchUseCase
   };
 
   return containerInstance;
