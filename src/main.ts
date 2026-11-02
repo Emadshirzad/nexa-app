@@ -4,6 +4,7 @@ import App from './app/App.vue';
 import { router } from './app/router';
 import './styles/main.css';
 import { ScreenOrientation } from '@capgo/capacitor-screen-orientation';
+import { initializeAppContainer } from './app/providers/container';
 
 async function bootstrap() {
   const app = createApp(App);
@@ -11,6 +12,9 @@ async function bootstrap() {
 
   app.use(pinia);
   app.use(router);
+
+  // Initialize Clean Architecture DI Container & Database Migrations
+  await initializeAppContainer();
 
   // Lock to portrait orientation on mobile
   try {

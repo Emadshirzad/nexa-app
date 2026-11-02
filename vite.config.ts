@@ -19,9 +19,15 @@ export default defineConfig({
     host: true,
     port: 5173
   },
+  build: {
+    rollupOptions: {
+      external: ['better-sqlite3']
+    }
+  },
   test: {
     globals: true,
     environment: 'jsdom',
+    setupFiles: ['tests/setup.ts'],
     include: ['tests/**/*.{test,spec}.ts']
   }
 });
