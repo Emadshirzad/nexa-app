@@ -304,7 +304,7 @@ export class SqliteReportingRepository implements IReportingRepository {
         type: 'customer',
         title: c.name,
         subtitle: `${c.mobile}${c.address ? ' - ' + c.address : ''}`,
-        route: `/customers`,
+        route: `/customers/${c.id}`,
         badge: 'مشتری'
       });
     }
@@ -328,7 +328,7 @@ export class SqliteReportingRepository implements IReportingRepository {
         type: 'product',
         title: p.name,
         subtitle: `کد: ${p.sku} | قیمت: ${p.selling_price.toLocaleString('en-US')} تومان`,
-        route: `/products`,
+        route: `/products/${p.id}`,
         badge: 'محصول'
       });
     }
@@ -353,7 +353,7 @@ export class SqliteReportingRepository implements IReportingRepository {
         type: 'invoice',
         title: `فاکتور شماره ${inv.invoice_number}`,
         subtitle: `${inv.customer_name ?? 'مشتری متفرقه'} | ${inv.final_amount.toLocaleString('en-US')} تومان`,
-        route: `/invoices`,
+        route: `/invoices/${inv.id}`,
         badge: 'فاکتور'
       });
     }
@@ -377,7 +377,7 @@ export class SqliteReportingRepository implements IReportingRepository {
         type: 'lead',
         title: l.name,
         subtitle: `موبایل: ${l.mobile}`,
-        route: `/leads`,
+        route: `/leads/${l.id}`,
         badge: 'سرنخ'
       });
     }

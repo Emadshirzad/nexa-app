@@ -35,7 +35,7 @@
 - [x] TypeScript Strict Mode: **0 type errors** across all components and use cases (`vue-tsc --noEmit`).
 - [x] Production Bundle Build: Vite production build generated clean distribution (`dist/index.html`, `dist/assets/*`).
 - [x] Capacitor Android Sync: Web assets and plugins synced to `android/app/src/main/assets/public` without warnings.
-- [x] Automated Tests: **63 out of 63 tests passing** (15 test suites) with 100% pass rate.
+- [x] Automated Tests: **64 out of 64 tests passing** (15 test suites) with 100% pass rate.
 
 ### 2.2 Release Signing Configuration
 - [x] Android `build.gradle` defines `signingConfigs.release` configurable via environment variables:
@@ -107,25 +107,25 @@
 | **Signing Scheme** | APK Signature Scheme v2 (`Verified`) |
 | **Signer Certificate DN** | `CN=Nexa CRM, OU=Mobile Development, O=Nexa CRM, L=Tehran, ST=Tehran, C=IR` |
 | **Certificate SHA-256** | `ea0b4b8a19462f23cbe5d898f9ce7ee888771780235dd5731f01ad604ce29d04` |
-| **APK SHA-256** | `33507fa099b06d2e8f8bd87f1c7b44cb8c9e72ea33916db267881f9969e3a969` |
+| **APK SHA-256** | `496fa8739fb0bf7640e757217140053782c3ab879980f6ddacfb3f4b968d7b4b` |
 
 ### 3.2 Web Assets Checksums (SHA-256)
 ```text
-4f07876ad10ecf3678c4882769d87f1a6d3814027ae538048907abf4fab04483  dist/assets/index-6BYfIckd.css
-1a5b681113c3174d6d198555c4a37a31f11e38df1d047d70e3c0f3dcfc9ea2ce  dist/assets/index-CNLgXrGY.js
-d620bd9a9e640ef5420c4df41f9f5bd08a4dc2c16c6aa071b5bc07eb801daf3a  dist/assets/OnboardingPage-BrMh5Ffq.js
-bd6c2c507fd3227b3775bd576bfbc60b7719e30c76f81490c1909c591d127c58  dist/assets/LockPage-Cp4iIZ71.js
-9f5f68741672aa656ac6ee3281f61ef2f63e412a50c21ac5807815051df969f0  dist/assets/DashboardPage-DHORVNdE.js
-c1650cb0eb97f03d4fbfe34dfda35607a68479991a1db9ecf3aff8a94fcf9a64  dist/assets/CustomersPage-CR5AUUP4.js
-c57018b3d9261499d3f084d48933fb85b72d6a964f4a5335f4ece7757e6c3fc5  dist/assets/InvoicesPage-Bh0RrxTf.js
-a7a38e5db0b3f64fac542f5767ac51b3c8c79e0ba5b66ba3cf0f26fb7599f065  dist/assets/TasksPage-CVcUC2zF.js
-b9facac62b7a5c1395cb2207449d2723734c5d0553283169b0a257d1a2bc3b9b  dist/assets/LeadsPage-Bpb1Odt1.js
-e8836ea4b6bddabab80cfc0043063216855c9c0b23d38ab7ff2de8abc73218b0  dist/assets/ProductsPage-y6O2kRpu.js
-ba2e9f35d7bf36e0bc08a99d43ba1f7d17988f34cf1aa18e60af99116fd7b1bb  dist/assets/MorePage-Ci58FC3-.js
-49756cb759c0e8b64d9cbfb09c362789b800c434a9164b6ed04d9bb83dac7980  dist/assets/FinancePage-DIJLcN0c.js
-1fb563619665cfa8209fddc36dc64bb4a0c8a337a63872d6bcbd8cd6a926fb7b  dist/assets/ReportsPage-BUIvxJbu.js
-73f353a4eed84310ea8de2629f9c434e71a5717978ae9a46974c459ea3e2f6cf  dist/assets/SettingsPage-Ch8ZNnHa.js
-08318d346e284d6a36bf975bcbacdb1e93537f90831ba99262e2f85d1017f343  dist/index.html
+1f51f1f13580eef5299564c8c82f7fe7c3e73aa43360541f6cb96c4ed45470ac  dist/assets/index-D4eCHY0l.css
+828e7fb0ad55dce20226fe737d23b0851fd45e8f07cc26cded54a242f53a71fa  dist/assets/index-C7vpIAY2.js
+04b8a16db2b4702d5300ab54cacea078997b2d42c4ec92041048fca7be5b246b  dist/assets/OnboardingPage-CKUAUnGr.js
+0c0b8081b5d79c928ea5d24bda79cdfea38e5571ead63a64c58632235ba7c628  dist/assets/LockPage-CcbVJuuj.js
+ba773aa44892431c15494574d93a094edd4c0776a10e236b51a3116d05c7fd5b  dist/assets/DashboardPage-DMK7uJoK.js
+c5215b93ed5fe469fe88875e697c564dfb28bc54a1e98e59b0cdf8a89f9262f4  dist/assets/CustomersPage-CM3IAOEX.js
+87e026c82aa17ac80f4b0705dbb4d470da35e994cf642a7d7c9711fa4bbdaa88  dist/assets/InvoicesPage-1iaL8U7v.js
+964a6c867da2ed828116d4802e777a88a3cb0c4789bb91f69ac07ab19df97cb6  dist/assets/TasksPage-BblV17hD.js
+2ecea7dc5a56ba96491f4802917b5617911457674d3c3279b93844e308dd6e55  dist/assets/LeadsPage-CEp-DkNh.js
+685127426eaadf6f3f7f8c9a2fa4e2b6ce0863c9fa9ccbf4794a535d264211b8  dist/assets/ProductsPage-JHZQEtPR.js
+59957d7858ffba34508354147db59bbaeacb05bf174880ba350889e9df48fefc  dist/assets/MorePage-CD5YxPnn.js
+3d91b25230dedf73f11118e3bb39946069a4b30d111339d996512249abb35a96  dist/assets/FinancePage-DF4vN_5O.js
+77e412f3e940be1e4bf2d31fce25fc1ec6f13ac6ea97c583f5db265b0c3c622f  dist/assets/ReportsPage-CSyZpQRq.js
+65228a4f97a11d9d787dcb37076417b8a73b9418a8552adc1266abc0e6fe5a6e  dist/assets/SettingsPage-1eYL4WFU.js
+51a0e4611b5bf0a590f56dbc426fc902c66f7b22f70ca4de4aab6eb31bd052a2  dist/index.html
 ```
 
 ---
@@ -139,4 +139,4 @@ The Nexa CRM application has been compiled, packaged, signed with the production
 
 > [!NOTE]
 > Release APK location: `android/app/build/outputs/apk/release/app-release.apk`  
-> SHA-256: `33507fa099b06d2e8f8bd87f1c7b44cb8c9e72ea33916db267881f9969e3a969`
+> SHA-256: `496fa8739fb0bf7640e757217140053782c3ab879980f6ddacfb3f4b968d7b4b`

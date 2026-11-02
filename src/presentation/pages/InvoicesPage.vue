@@ -145,7 +145,7 @@
             صدور فاکتور جدید
           </h3>
           <button
-            @click="showCreateModal = false"
+            @click="closeCreateModal"
             type="button"
             class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
           >
@@ -362,7 +362,7 @@
 
         <div class="flex items-center gap-3 pt-2 border-t border-gray-100 dark:border-graphite-800">
           <button
-            @click="showCreateModal = false"
+            @click="closeCreateModal"
             type="button"
             class="flex-1 h-11 rounded-2xl border border-gray-200 dark:border-graphite-700 text-xs font-bold text-graphite-700 dark:text-gray-300"
           >
@@ -399,7 +399,7 @@
             </span>
           </div>
           <button
-            @click="selectedInvoice = null"
+            @click="closeDetailModal"
             type="button"
             class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
           >
@@ -622,7 +622,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, shallowRef, onMounted } from 'vue';
+import { ref, computed, shallowRef, onMounted, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import AppHeader from '@/presentation/components/common/AppHeader.vue';
 import {
   Receipt,
@@ -642,6 +643,9 @@ import type { BusinessProfile } from '@/domain/entities/BusinessProfile';
 import { InvoicePdfGenerator } from '@/infrastructure/pdf/InvoicePdfGenerator';
 import { toJalaliString, formatJalaliHuman } from '@/shared/utils/jalali';
 import { getUnitLabel } from '@/shared/constants/units';
+
+const route = useRoute();
+const router = useRouter();
 
 const searchQuery = ref('');
 const activeFilter = ref<'all' | 'issued' | 'cancelled' | 'debt'>('all');
@@ -727,9 +731,44 @@ async function loadData() {
   }
 }
 
-onMounted(() => {
-  loadData();
+function closeCreateModal() {
+  showCreateModal.value = false;
+  if (route.name === 'invoice-new') {
+    router.replace({ name: 'invoices' });
+  }
+}
+
+function closeDetailModal() {
+  selectedInvoice.value = null;
+  if (route.params.id) {
+    router.replace({ name: 'invoices' });
+  }
+}
+
+async function checkRoute() {
+  if (route.name === 'invoice-new') {
+    openCreateModal();
+  } else if (route.params.id) {
+    const invId = route.params.id as string;
+    const container = getAppContainer();
+    const found = await container.invoiceRepo.findById(invId as any);
+    if (found) {
+      selectedInvoice.value = found;
+    }
+  }
+}
+
+onMounted(async () => {
+  await loadData();
+  await checkRoute();
 });
+
+watch(
+  () => route.fullPath,
+  async () => {
+    await checkRoute();
+  }
+);
 
 const filteredInvoices = computed(() => {
   return invoices.value.filter((inv) => {

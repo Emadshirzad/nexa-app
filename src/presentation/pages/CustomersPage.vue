@@ -138,7 +138,7 @@
       <div class="bg-white dark:bg-graphite-900 rounded-3xl p-5 max-w-md w-full max-h-[90vh] overflow-y-auto space-y-4 shadow-xl border border-gray-100 dark:border-graphite-800">
         <div class="flex items-center justify-between border-b border-gray-100 dark:border-graphite-800 pb-3">
           <h3 class="text-sm font-bold text-graphite-900 dark:text-white">افزودن مشتری جدید</h3>
-          <button @click="showCreateModal = false" class="p-1 rounded-lg text-gray-400 hover:text-gray-600">
+          <button @click="closeCreateModal" class="p-1 rounded-lg text-gray-400 hover:text-gray-600">
             <X class="w-5 h-5" />
           </button>
         </div>
@@ -229,7 +229,7 @@
             <h3 class="text-base font-bold text-graphite-900 dark:text-white">{{ activeCustomer.name }}</h3>
             <p class="text-xs text-gray-400 font-mono mt-0.5" dir="ltr">{{ activeCustomer.mobile }}</p>
           </div>
-          <button @click="showDetailModal = false" class="p-1 rounded-lg text-gray-400 hover:text-gray-600">
+          <button @click="closeDetailModal" class="p-1 rounded-lg text-gray-400 hover:text-gray-600">
             <X class="w-5 h-5" />
           </button>
         </div>
@@ -277,7 +277,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, shallowRef, onMounted } from 'vue';
+import { ref, shallowRef, onMounted, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import AppHeader from '@/presentation/components/common/AppHeader.vue';
 import { useContainer } from '@/presentation/composables/useContainer';
 import { useUIStore } from '@/presentation/stores/uiStore';
@@ -285,6 +286,8 @@ import type { Customer } from '@/domain/entities/Customer';
 import type { CustomerFinancialSummary } from '@/domain/repositories/ICustomerRepository';
 import { Users, UserPlus, Search, Phone, MessageSquare, X } from 'lucide-vue-next';
 
+const route = useRoute();
+const router = useRouter();
 const container = useContainer();
 const uiStore = useUIStore();
 
@@ -309,9 +312,43 @@ const newForm = ref({
   followUpDate: null as string | null
 });
 
+function closeCreateModal() {
+  showCreateModal.value = false;
+  if (route.name === 'customer-new') {
+    router.replace({ name: 'customers' });
+  }
+}
+
+function closeDetailModal() {
+  showDetailModal.value = false;
+  if (route.params.id) {
+    router.replace({ name: 'customers' });
+  }
+}
+
+async function checkRoute() {
+  if (route.name === 'customer-new') {
+    openCreateModal();
+  } else if (route.params.id) {
+    const custId = route.params.id as string;
+    const found = await container.customerRepo.findById(custId);
+    if (found) {
+      await openDetailModal(found);
+    }
+  }
+}
+
 onMounted(async () => {
   await loadData();
+  await checkRoute();
 });
+
+watch(
+  () => route.fullPath,
+  async () => {
+    await checkRoute();
+  }
+);
 
 async function loadData() {
   allTags.value = await container.customerRepo.listTags();

@@ -12,9 +12,9 @@
 
 | Category | Test Suites | Total Tests | Passed | Failed | Skipped | Duration |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Unit Tests** | 5 | 21 | 21 | 0 | 0 | 38ms |
+| **Unit Tests** | 5 | 22 | 22 | 0 | 0 | 42ms |
 | **Integration Tests** | 10 | 42 | 42 | 0 | 0 | 791ms |
-| **Total** | **15** | **63** | **63** | **0** | **0** | **1.37s** |
+| **Total** | **15** | **64** | **64** | **0** | **0** | **1.44s** |
 
 ---
 
@@ -48,10 +48,11 @@
 - ✅ Formats human-readable Jalali date strings with Persian month names (e.g. `۱۱ آبان ۱۴۰۵`)
 - ✅ Converts Jalali dates back to ISO Gregorian dates without day drift or leap-year discrepancies
 
-#### `tests/unit/UIStore.test.ts` (3 tests)
+#### `tests/unit/UIStore.test.ts` (4 tests)
 - ✅ Applies and toggles light, dark, and system themes dynamically
 - ✅ Manages persistent app lock and inactivity screen transitions
 - ✅ Enqueues and dismisses toast notifications with custom durations
+- ✅ Adjusts application font size preferences dynamically (`small` 14px, `normal` 15px, `large` 17px)
 
 ---
 

@@ -47,4 +47,21 @@ describe('UI Store (Transient UI State)', () => {
     store.dismissToast(id);
     expect(store.toasts.length).toBe(0);
   });
+
+  it('manages font size preferences', () => {
+    const store = useUIStore();
+    expect(store.fontSize).toBe('normal');
+
+    store.setFontSize('small');
+    expect(store.fontSize).toBe('small');
+    expect(document.documentElement.style.fontSize).toBe('14px');
+
+    store.setFontSize('large');
+    expect(store.fontSize).toBe('large');
+    expect(document.documentElement.style.fontSize).toBe('17px');
+
+    store.setFontSize('normal');
+    expect(store.fontSize).toBe('normal');
+    expect(document.documentElement.style.fontSize).toBe('15px');
+  });
 });

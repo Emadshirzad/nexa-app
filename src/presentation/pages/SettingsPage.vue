@@ -23,6 +23,94 @@
         </div>
       </section>
 
+      <!-- Font Size Preference -->
+      <section class="bg-white dark:bg-graphite-900 rounded-3xl p-4 border border-gray-100 dark:border-graphite-800 space-y-3">
+        <h3 class="text-xs font-bold text-graphite-400 dark:text-gray-400">اندازه قلم متون</h3>
+        <div class="grid grid-cols-3 gap-2 text-xs">
+          <button
+            v-for="opt in fontSizeOptions"
+            :key="opt.key"
+            @click="handleFontSizeChange(opt.key)"
+            type="button"
+            class="p-2.5 rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all"
+            :class="uiStore.fontSize === opt.key
+              ? 'bg-emerald text-white font-bold shadow-sm'
+              : 'bg-gray-50 dark:bg-graphite-800 text-graphite-700 dark:text-gray-300'"
+          >
+            <Type class="w-4 h-4" />
+            <span>{{ opt.label }}</span>
+            <span class="text-[10px] opacity-75">{{ opt.desc }}</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Notifications & Quiet Hours -->
+      <section class="bg-white dark:bg-graphite-900 rounded-3xl p-4 border border-gray-100 dark:border-graphite-800 space-y-3">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xs font-bold text-graphite-400 dark:text-gray-400">اعلان‌ها و ساعات سکوت</h3>
+          <span class="text-[11px] text-gray-400 flex items-center gap-1">
+            <Bell class="w-3.5 h-3.5 text-emerald" />
+            یادآوری وظایف
+          </span>
+        </div>
+
+        <div class="space-y-3 text-xs">
+          <div class="flex items-center justify-between p-3 rounded-2xl bg-gray-50 dark:bg-graphite-800">
+            <div>
+              <div class="font-bold text-graphite-900 dark:text-white">ارسال اعلان محلی</div>
+              <div class="text-[10px] text-gray-400 mt-0.5">یادآوری سررسید وظایف در دستگاه</div>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" v-model="notificationsEnabled" @change="handleSaveNotifications" class="sr-only peer" />
+              <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-graphite-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald"></div>
+            </label>
+          </div>
+
+          <div v-if="notificationsEnabled" class="p-3 rounded-2xl bg-gray-50 dark:bg-graphite-800 space-y-2">
+            <div class="font-bold text-graphite-900 dark:text-white flex items-center gap-1.5">
+              <VolumeX class="w-4 h-4 text-amber-500" />
+              <span>ساعات سکوت (عدم ارسال صدا و اعلان)</span>
+            </div>
+            <p class="text-[10px] text-gray-400 leading-relaxed">
+              در طول ساعات سکوت، اعلان‌ها به طور خودکار به صبح روز بعد موکول می‌شوند.
+            </p>
+            <div class="grid grid-cols-2 gap-3 pt-1">
+              <div>
+                <label class="block text-[10px] text-gray-500 mb-1 font-bold">شروع سکوت (ساعت شب)</label>
+                <select
+                  v-model.number="quietHoursStart"
+                  class="w-full h-9 px-2.5 rounded-xl bg-white dark:bg-graphite-700 border border-gray-200 dark:border-graphite-600 text-xs focus:outline-none focus:border-emerald font-bold"
+                >
+                  <option v-for="h in [20, 21, 22, 23, 0]" :key="h" :value="h">
+                    {{ h === 0 ? '۰۰:۰۰ (بامداد)' : `${h}:۰۰` }}
+                  </option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-[10px] text-gray-500 mb-1 font-bold">پایان سکوت (ساعت صبح)</label>
+                <select
+                  v-model.number="quietHoursEnd"
+                  class="w-full h-9 px-2.5 rounded-xl bg-white dark:bg-graphite-700 border border-gray-200 dark:border-graphite-600 text-xs focus:outline-none focus:border-emerald font-bold"
+                >
+                  <option v-for="h in [6, 7, 8, 9, 10]" :key="h" :value="h">
+                    {{ h }}:۰۰ صبح
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            <button
+              @click="handleSaveNotifications"
+              type="button"
+              :disabled="isSavingNotifications"
+              class="w-full h-9 mt-1 rounded-xl bg-emerald text-white text-xs font-bold hover:bg-emerald-600 active:scale-95 transition-all disabled:opacity-50"
+            >
+              {{ isSavingNotifications ? 'در حال ذخیره...' : 'ذخیره تنظیمات ساعات سکوت' }}
+            </button>
+          </div>
+        </div>
+      </section>
+
       <!-- Business Profile & Details -->
       <section class="bg-white dark:bg-graphite-900 rounded-3xl p-4 border border-gray-100 dark:border-graphite-800 space-y-3">
         <div class="flex items-center justify-between">
@@ -304,7 +392,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import AppHeader from '@/presentation/components/common/AppHeader.vue';
-import { useUIStore, AppTheme } from '@/presentation/stores/uiStore';
+import { useUIStore, AppTheme, AppFontSize } from '@/presentation/stores/uiStore';
 import { useContainer } from '@/presentation/composables/useContainer';
 import type { BusinessProfile } from '@/domain/entities/BusinessProfile';
 import {
@@ -313,7 +401,10 @@ import {
   Laptop,
   Lock,
   ShieldCheck,
-  RotateCcw
+  RotateCcw,
+  Type,
+  Bell,
+  VolumeX
 } from 'lucide-vue-next';
 
 const uiStore = useUIStore();
@@ -324,6 +415,19 @@ const isEditingProfile = ref(false);
 const editName = ref('');
 const editPhone = ref('');
 const editDescription = ref('');
+
+// Font Size Options
+const fontSizeOptions = [
+  { key: 'small' as AppFontSize, label: 'کوچک', desc: '۱۴px' },
+  { key: 'normal' as AppFontSize, label: 'استاندارد', desc: '۱۵px' },
+  { key: 'large' as AppFontSize, label: 'بزرگ', desc: '۱۷px' }
+];
+
+// Notifications & Quiet Hours State
+const notificationsEnabled = ref(true);
+const quietHoursStart = ref(22);
+const quietHoursEnd = ref(8);
+const isSavingNotifications = ref(false);
 
 // Backup / Restore State
 const showBackupModal = ref(false);
@@ -346,8 +450,52 @@ const themeOptions = [
 ];
 
 onMounted(async () => {
-  await loadProfile();
+  await Promise.all([loadProfile(), loadNotificationSettings()]);
 });
+
+async function loadNotificationSettings() {
+  try {
+    const notifEnabled = await container.settingsRepo.get('notifications_enabled');
+    if (notifEnabled !== null) {
+      notificationsEnabled.value = notifEnabled === 'true';
+    }
+    const qStart = await container.settingsRepo.get('quiet_hours_start');
+    if (qStart !== null) {
+      quietHoursStart.value = parseInt(qStart, 10);
+    }
+    const qEnd = await container.settingsRepo.get('quiet_hours_end');
+    if (qEnd !== null) {
+      quietHoursEnd.value = parseInt(qEnd, 10);
+    }
+  } catch {
+    // Ignore fallback
+  }
+}
+
+async function handleFontSizeChange(size: AppFontSize) {
+  uiStore.setFontSize(size);
+  await container.settingsRepo.set('font_size', size);
+}
+
+async function handleSaveNotifications() {
+  isSavingNotifications.value = true;
+  try {
+    await container.settingsRepo.set('notifications_enabled', String(notificationsEnabled.value));
+    await container.settingsRepo.set('quiet_hours_start', String(quietHoursStart.value));
+    await container.settingsRepo.set('quiet_hours_end', String(quietHoursEnd.value));
+    uiStore.showToast({
+      type: 'success',
+      message: 'تنظیمات اعلان‌ها و ساعات سکوت ذخیره شد.'
+    });
+  } catch (err) {
+    uiStore.showToast({
+      type: 'error',
+      message: 'خطا در ذخیره تنظیمات: ' + String(err)
+    });
+  } finally {
+    isSavingNotifications.value = false;
+  }
+}
 
 async function loadProfile() {
   try {

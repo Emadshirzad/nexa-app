@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 
 export type AppTheme = 'system' | 'light' | 'dark';
+export type AppFontSize = 'small' | 'normal' | 'large';
 
 export interface ToastMessage {
   id: string;
@@ -13,14 +14,47 @@ export interface ToastMessage {
 
 export const useUIStore = defineStore('ui', () => {
   const theme = ref<AppTheme>('system');
+  const fontSize = ref<AppFontSize>('normal');
   const isAppLocked = ref<boolean>(false);
   const isSearchOpen = ref<boolean>(false);
   const toasts = ref<ToastMessage[]>([]);
   const isGlobalLoading = ref<boolean>(false);
 
+  // Initialize saved font size
+  try {
+    const savedSize = localStorage.getItem('nexa_font_size') as AppFontSize | null;
+    if (savedSize && ['small', 'normal', 'large'].includes(savedSize)) {
+      fontSize.value = savedSize;
+      applyFontSize(savedSize);
+    }
+  } catch {
+    // Ignore storage errors in restricted contexts
+  }
+
   function setTheme(newTheme: AppTheme) {
     theme.value = newTheme;
     applyThemeClass(newTheme);
+  }
+
+  function setFontSize(newSize: AppFontSize) {
+    fontSize.value = newSize;
+    applyFontSize(newSize);
+    try {
+      localStorage.setItem('nexa_font_size', newSize);
+    } catch {
+      // Ignore
+    }
+  }
+
+  function applyFontSize(size: AppFontSize) {
+    const root = document.documentElement;
+    if (size === 'small') {
+      root.style.fontSize = '14px';
+    } else if (size === 'large') {
+      root.style.fontSize = '17px';
+    } else {
+      root.style.fontSize = '15px';
+    }
   }
 
   function applyThemeClass(currentTheme: AppTheme) {
@@ -68,12 +102,15 @@ export const useUIStore = defineStore('ui', () => {
 
   return {
     theme,
+    fontSize,
     isAppLocked,
     isSearchOpen,
     toasts,
     isGlobalLoading,
     setTheme,
+    setFontSize,
     applyThemeClass,
+    applyFontSize,
     showToast,
     dismissToast,
     lockApp,

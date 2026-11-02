@@ -284,7 +284,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, shallowRef, onMounted } from 'vue';
+import { ref, computed, shallowRef, onMounted, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import AppHeader from '@/presentation/components/common/AppHeader.vue';
 import {
   UserCheck,
@@ -298,6 +299,8 @@ import {
 import { getAppContainer } from '@/app/providers/container';
 import type { Lead, LeadStatus } from '@/domain/entities/Lead';
 
+const route = useRoute();
+
 const searchQuery = ref('');
 const activeStatus = ref<'all' | LeadStatus>('all');
 const isLoading = ref(true);
@@ -308,7 +311,8 @@ const statusFilters = [
   { key: 'following_up' as const, label: 'در حال پیگیری' },
   { key: 'interested' as const, label: 'علاقه‌مند' },
   { key: 'converted' as const, label: 'تبدیل‌شده' },
-  { key: 'unsuccessful' as const, label: 'ناموفق' }
+  { key: 'unsuccessful' as const, label: 'ناموفق' },
+  { key: 'rejected' as const, label: 'رد شده' }
 ];
 
 const leads = shallowRef<Lead[]>([]);
@@ -335,11 +339,22 @@ const showConvertModal = ref(false);
 const targetConvertLead = shallowRef<Lead | null>(null);
 const convertAddress = ref('');
 
+async function checkRoute() {
+  if (route.params.id) {
+    const leadId = route.params.id as string;
+    const found = leads.value.find((l) => l.id === leadId);
+    if (found) {
+      searchQuery.value = found.name;
+    }
+  }
+}
+
 async function loadLeads() {
   isLoading.value = true;
   try {
     const container = getAppContainer();
     leads.value = await container.leadRepo.listAll();
+    await checkRoute();
   } catch (err) {
     console.error('Error loading leads:', err);
   } finally {
@@ -350,6 +365,13 @@ async function loadLeads() {
 onMounted(() => {
   loadLeads();
 });
+
+watch(
+  () => route.fullPath,
+  async () => {
+    await checkRoute();
+  }
+);
 
 const filteredLeads = computed(() => {
   return leads.value.filter((lead) => {

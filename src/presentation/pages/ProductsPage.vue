@@ -137,7 +137,7 @@
       <div class="bg-white dark:bg-graphite-900 rounded-3xl p-5 max-w-md w-full max-h-[90vh] overflow-y-auto space-y-4 shadow-xl border border-gray-100 dark:border-graphite-800">
         <div class="flex items-center justify-between border-b border-gray-100 dark:border-graphite-800 pb-3">
           <h3 class="text-sm font-bold text-graphite-900 dark:text-white">تعریف محصول جدید</h3>
-          <button @click="showCreateModal = false" class="p-1 rounded-lg text-gray-400 hover:text-gray-600">
+          <button @click="closeCreateModal" class="p-1 rounded-lg text-gray-400 hover:text-gray-600">
             <X class="w-5 h-5" />
           </button>
         </div>
@@ -239,7 +239,7 @@
             <h3 class="text-sm font-bold text-graphite-900 dark:text-white">اصلاح موجودی انبار</h3>
             <p class="text-[11px] text-gray-400 mt-0.5">{{ selectedProduct.name }} (موجودی فعلی: {{ selectedProduct.stockQuantity.format() }})</p>
           </div>
-          <button @click="showAdjustModal = false" class="p-1 rounded-lg text-gray-400 hover:text-gray-600">
+          <button @click="closeAdjustModal" class="p-1 rounded-lg text-gray-400 hover:text-gray-600">
             <X class="w-5 h-5" />
           </button>
         </div>
@@ -306,7 +306,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, shallowRef, onMounted } from 'vue';
+import { ref, shallowRef, onMounted, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import AppHeader from '@/presentation/components/common/AppHeader.vue';
 import { useContainer } from '@/presentation/composables/useContainer';
 import { useUIStore } from '@/presentation/stores/uiStore';
@@ -315,6 +316,8 @@ import type { Category } from '@/domain/entities/Category';
 import type { UUID } from '@/shared/types/common';
 import { Package, Plus, Search, X } from 'lucide-vue-next';
 
+const route = useRoute();
+const router = useRouter();
 const container = useContainer();
 const uiStore = useUIStore();
 
@@ -353,9 +356,44 @@ const adjustType = ref<'addition' | 'deduction'>('addition');
 const adjustQty = ref(1);
 const adjustReason = ref('');
 
+function closeCreateModal() {
+  showCreateModal.value = false;
+  if (route.name === 'product-new') {
+    router.replace({ name: 'products' });
+  }
+}
+
+function closeAdjustModal() {
+  showAdjustModal.value = false;
+  selectedProduct.value = null;
+  if (route.params.id) {
+    router.replace({ name: 'products' });
+  }
+}
+
+async function checkRoute() {
+  if (route.name === 'product-new') {
+    openCreateModal();
+  } else if (route.params.id) {
+    const prodId = route.params.id as string;
+    const found = await container.productRepo.findById(prodId as any);
+    if (found) {
+      openAdjustModal(found);
+    }
+  }
+}
+
 onMounted(async () => {
   await loadData();
+  await checkRoute();
 });
+
+watch(
+  () => route.fullPath,
+  async () => {
+    await checkRoute();
+  }
+);
 
 async function loadData() {
   categories.value = await container.categoryRepo.listAll();

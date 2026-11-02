@@ -79,7 +79,7 @@ export class AndroidNotificationService {
   /**
    * Schedules a reminder notification for a given task
    */
-  public static async scheduleTaskReminder(task: Task): Promise<void> {
+  public static async scheduleTaskReminder(task: Task, quietHours?: QuietHours): Promise<void> {
     try {
       if (task.isCompleted()) return;
 
@@ -87,7 +87,7 @@ export class AndroidNotificationService {
       if (isNaN(dueDate.getTime())) return;
 
       // Adjust for quiet hours
-      const notifyAt = this.adjustForQuietHours(dueDate);
+      const notifyAt = this.adjustForQuietHours(dueDate, quietHours || this.DEFAULT_QUIET_HOURS);
       if (notifyAt.getTime() <= Date.now()) {
         return; // Already in the past
       }
