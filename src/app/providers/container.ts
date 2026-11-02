@@ -13,6 +13,8 @@ import type { IInvoiceRepository } from '@/domain/repositories/IInvoiceRepositor
 import type { IPaymentRepository } from '@/domain/repositories/IPaymentRepository';
 import type { ILeadRepository } from '@/domain/repositories/ILeadRepository';
 import type { ITaskRepository } from '@/domain/repositories/ITaskRepository';
+import type { IExpenseRepository } from '@/domain/repositories/IExpenseRepository';
+import type { ICashLedgerRepository } from '@/domain/repositories/ICashLedgerRepository';
 
 import { SqliteBusinessProfileRepository } from '@/infrastructure/repositories/SqliteBusinessProfileRepository';
 import { SqliteAppSettingsRepository } from '@/infrastructure/repositories/SqliteAppSettingsRepository';
@@ -24,6 +26,8 @@ import { SqliteInvoiceRepository } from '@/infrastructure/repositories/SqliteInv
 import { SqlitePaymentRepository } from '@/infrastructure/repositories/SqlitePaymentRepository';
 import { SqliteLeadRepository } from '@/infrastructure/repositories/SqliteLeadRepository';
 import { SqliteTaskRepository } from '@/infrastructure/repositories/SqliteTaskRepository';
+import { SqliteExpenseRepository } from '@/infrastructure/repositories/SqliteExpenseRepository';
+import { SqliteCashLedgerRepository } from '@/infrastructure/repositories/SqliteCashLedgerRepository';
 
 import { SetupBusinessProfileUseCase } from '@/application/use-cases/profile/SetupBusinessProfileUseCase';
 import { GetBusinessProfileUseCase } from '@/application/use-cases/profile/GetBusinessProfileUseCase';
@@ -43,6 +47,9 @@ import { ConvertLeadToCustomerUseCase } from '@/application/use-cases/leads/Conv
 import { CreateTaskUseCase } from '@/application/use-cases/tasks/CreateTaskUseCase';
 import { CompleteTaskUseCase } from '@/application/use-cases/tasks/CompleteTaskUseCase';
 import { UpdateTaskUseCase } from '@/application/use-cases/tasks/UpdateTaskUseCase';
+import { RecordExpenseUseCase } from '@/application/use-cases/finance/RecordExpenseUseCase';
+import { RecordOtherIncomeUseCase } from '@/application/use-cases/finance/RecordOtherIncomeUseCase';
+import { GetFinancialSummaryUseCase } from '@/application/use-cases/finance/GetFinancialSummaryUseCase';
 
 export interface AppContainer {
   database: IDatabaseDriver;
@@ -56,6 +63,8 @@ export interface AppContainer {
   paymentRepo: IPaymentRepository;
   leadRepo: ILeadRepository;
   taskRepo: ITaskRepository;
+  expenseRepo: IExpenseRepository;
+  cashLedgerRepo: ICashLedgerRepository;
 
   setupBusinessProfileUseCase: SetupBusinessProfileUseCase;
   getBusinessProfileUseCase: GetBusinessProfileUseCase;
@@ -75,6 +84,9 @@ export interface AppContainer {
   createTaskUseCase: CreateTaskUseCase;
   completeTaskUseCase: CompleteTaskUseCase;
   updateTaskUseCase: UpdateTaskUseCase;
+  recordExpenseUseCase: RecordExpenseUseCase;
+  recordOtherIncomeUseCase: RecordOtherIncomeUseCase;
+  getFinancialSummaryUseCase: GetFinancialSummaryUseCase;
 }
 
 let containerInstance: AppContainer | null = null;
@@ -105,6 +117,8 @@ export async function initializeAppContainer(): Promise<AppContainer> {
   const paymentRepo = new SqlitePaymentRepository(driver);
   const leadRepo = new SqliteLeadRepository(driver);
   const taskRepo = new SqliteTaskRepository(driver);
+  const expenseRepo = new SqliteExpenseRepository(driver);
+  const cashLedgerRepo = new SqliteCashLedgerRepository(driver);
 
   // 5. Instantiate use cases & services
   const setupBusinessProfileUseCase = new SetupBusinessProfileUseCase(profileRepo);
@@ -140,6 +154,9 @@ export async function initializeAppContainer(): Promise<AppContainer> {
   const createTaskUseCase = new CreateTaskUseCase(taskRepo);
   const completeTaskUseCase = new CompleteTaskUseCase(taskRepo);
   const updateTaskUseCase = new UpdateTaskUseCase(taskRepo);
+  const recordExpenseUseCase = new RecordExpenseUseCase(expenseRepo);
+  const recordOtherIncomeUseCase = new RecordOtherIncomeUseCase(expenseRepo);
+  const getFinancialSummaryUseCase = new GetFinancialSummaryUseCase(cashLedgerRepo);
 
   containerInstance = {
     database: driver,
@@ -153,6 +170,8 @@ export async function initializeAppContainer(): Promise<AppContainer> {
     paymentRepo,
     leadRepo,
     taskRepo,
+    expenseRepo,
+    cashLedgerRepo,
     setupBusinessProfileUseCase,
     getBusinessProfileUseCase,
     createProductUseCase,
@@ -170,7 +189,10 @@ export async function initializeAppContainer(): Promise<AppContainer> {
     convertLeadToCustomerUseCase,
     createTaskUseCase,
     completeTaskUseCase,
-    updateTaskUseCase
+    updateTaskUseCase,
+    recordExpenseUseCase,
+    recordOtherIncomeUseCase,
+    getFinancialSummaryUseCase
   };
 
   return containerInstance;

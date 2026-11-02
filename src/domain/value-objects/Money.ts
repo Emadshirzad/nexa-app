@@ -14,18 +14,22 @@ export class InvalidMoneyError extends DomainError {
 export class Money {
   private readonly amountInToman: number;
 
-  private constructor(amount: number) {
+  private constructor(amount: number, allowNegative: boolean = false) {
     if (!Number.isInteger(amount)) {
       throw new InvalidMoneyError(`مبلغ باید یک عدد صحیح باشد. مقدار نامعتبر: ${amount}`);
     }
-    if (amount < 0) {
+    if (!allowNegative && amount < 0) {
       throw new InvalidMoneyError(`مبلغ نمی‌تواند منفی باشد. مقدار: ${amount}`);
     }
     this.amountInToman = amount;
   }
 
   public static fromToman(amount: number): Money {
-    return new Money(amount);
+    return new Money(amount, false);
+  }
+
+  public static fromSignedToman(amount: number): Money {
+    return new Money(amount, true);
   }
 
   public static zero(): Money {
@@ -34,6 +38,10 @@ export class Money {
 
   public get value(): number {
     return this.amountInToman;
+  }
+
+  public isNegative(): boolean {
+    return this.amountInToman < 0;
   }
 
   public add(other: Money): Money {
