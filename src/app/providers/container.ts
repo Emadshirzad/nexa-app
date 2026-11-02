@@ -55,6 +55,8 @@ import { GetFinancialSummaryUseCase } from '@/application/use-cases/finance/GetF
 import { GetDashboardMetricsUseCase } from '@/application/use-cases/dashboard/GetDashboardMetricsUseCase';
 import { GetReportsDataUseCase } from '@/application/use-cases/reports/GetReportsDataUseCase';
 import { GlobalSearchUseCase } from '@/application/use-cases/search/GlobalSearchUseCase';
+import { BackupService } from '@/infrastructure/backup/BackupService';
+import { CsvService } from '@/infrastructure/csv/CsvService';
 
 export interface AppContainer {
   database: IDatabaseDriver;
@@ -71,6 +73,8 @@ export interface AppContainer {
   expenseRepo: IExpenseRepository;
   cashLedgerRepo: ICashLedgerRepository;
   reportingRepo: IReportingRepository;
+  backupService: BackupService;
+  csvService: CsvService;
 
   setupBusinessProfileUseCase: SetupBusinessProfileUseCase;
   getBusinessProfileUseCase: GetBusinessProfileUseCase;
@@ -170,6 +174,8 @@ export async function initializeAppContainer(): Promise<AppContainer> {
   const getDashboardMetricsUseCase = new GetDashboardMetricsUseCase(reportingRepo);
   const getReportsDataUseCase = new GetReportsDataUseCase(reportingRepo);
   const globalSearchUseCase = new GlobalSearchUseCase(reportingRepo);
+  const backupService = new BackupService(driver);
+  const csvService = new CsvService(customerRepo, productRepo, createProductUseCase);
 
   containerInstance = {
     database: driver,
@@ -186,6 +192,8 @@ export async function initializeAppContainer(): Promise<AppContainer> {
     expenseRepo,
     cashLedgerRepo,
     reportingRepo,
+    backupService,
+    csvService,
     setupBusinessProfileUseCase,
     getBusinessProfileUseCase,
     createProductUseCase,
