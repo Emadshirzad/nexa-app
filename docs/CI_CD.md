@@ -19,10 +19,10 @@ name: Nexa CRM CI/CD
 
 on:
   push:
-    branches: [main]
+    branches: [mobile-app]
     tags: ['v*']
   pull_request:
-    branches: [main]
+    branches: [mobile-app]
 
 jobs:
   validate:
