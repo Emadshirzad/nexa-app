@@ -32,6 +32,21 @@ import {
   MockStockMovementRepository,
   MockTaskRepository
 } from '@/infrastructure/mock/MockRepositories';
+import {
+  ApiAppSettingsRepository,
+  ApiBusinessProfileRepository,
+  ApiCashLedgerRepository,
+  ApiCategoryRepository,
+  ApiCustomerRepository,
+  ApiExpenseRepository,
+  ApiInvoiceRepository,
+  ApiLeadRepository,
+  ApiPaymentRepository,
+  ApiProductRepository,
+  ApiReportingRepository,
+  ApiStockMovementRepository,
+  ApiTaskRepository
+} from '@/infrastructure/api';
 import { BackupService } from '@/infrastructure/backup/BackupService';
 import { CsvService } from '@/infrastructure/csv/CsvService';
 
@@ -111,27 +126,57 @@ export async function initializeAppContainer(): Promise<AppContainer> {
     return containerInstance;
   }
 
-  // 1. Mock in-memory store (backend will replace this later)
-  const db = new MockDatabase();
+  // 1. Database driver & inactivity timer
   const driver: IDatabaseDriver = new InMemoryDriver();
-
-  // 2. Initialize inactivity watchdog (lock screen after 15 min idle if PIN set)
   await InactivityTimer.init();
 
-  // 3. Instantiate mock repositories
-  const profileRepo = new MockBusinessProfileRepository(db);
-  const settingsRepo = new MockAppSettingsRepository(db);
-  const productRepo = new MockProductRepository(db);
-  const categoryRepo = new MockCategoryRepository(db);
-  const stockMovementRepo = new MockStockMovementRepository(db);
-  const customerRepo = new MockCustomerRepository(db);
-  const invoiceRepo = new MockInvoiceRepository(db);
-  const paymentRepo = new MockPaymentRepository(db);
-  const leadRepo = new MockLeadRepository(db);
-  const taskRepo = new MockTaskRepository(db);
-  const expenseRepo = new MockExpenseRepository(db);
-  const cashLedgerRepo = new MockCashLedgerRepository(db);
-  const reportingRepo = new MockReportingRepository(db);
+  // 2. Instantiate repositories (API by default, Mock if VITE_USE_MOCK=true)
+  const useMock = import.meta.env.VITE_USE_MOCK === 'true';
+
+  let profileRepo: IBusinessProfileRepository;
+  let settingsRepo: IAppSettingsRepository;
+  let productRepo: IProductRepository;
+  let categoryRepo: ICategoryRepository;
+  let stockMovementRepo: IStockMovementRepository;
+  let customerRepo: ICustomerRepository;
+  let invoiceRepo: IInvoiceRepository;
+  let paymentRepo: IPaymentRepository;
+  let leadRepo: ILeadRepository;
+  let taskRepo: ITaskRepository;
+  let expenseRepo: IExpenseRepository;
+  let cashLedgerRepo: ICashLedgerRepository;
+  let reportingRepo: IReportingRepository;
+
+  if (useMock) {
+    const db = new MockDatabase();
+    profileRepo = new MockBusinessProfileRepository(db);
+    settingsRepo = new MockAppSettingsRepository(db);
+    productRepo = new MockProductRepository(db);
+    categoryRepo = new MockCategoryRepository(db);
+    stockMovementRepo = new MockStockMovementRepository(db);
+    customerRepo = new MockCustomerRepository(db);
+    invoiceRepo = new MockInvoiceRepository(db);
+    paymentRepo = new MockPaymentRepository(db);
+    leadRepo = new MockLeadRepository(db);
+    taskRepo = new MockTaskRepository(db);
+    expenseRepo = new MockExpenseRepository(db);
+    cashLedgerRepo = new MockCashLedgerRepository(db);
+    reportingRepo = new MockReportingRepository(db);
+  } else {
+    profileRepo = new ApiBusinessProfileRepository();
+    settingsRepo = new ApiAppSettingsRepository();
+    productRepo = new ApiProductRepository();
+    categoryRepo = new ApiCategoryRepository();
+    stockMovementRepo = new ApiStockMovementRepository();
+    customerRepo = new ApiCustomerRepository();
+    invoiceRepo = new ApiInvoiceRepository();
+    paymentRepo = new ApiPaymentRepository();
+    leadRepo = new ApiLeadRepository();
+    taskRepo = new ApiTaskRepository();
+    expenseRepo = new ApiExpenseRepository();
+    cashLedgerRepo = new ApiCashLedgerRepository();
+    reportingRepo = new ApiReportingRepository();
+  }
 
   // 4. Instantiate use cases & services
   const setupBusinessProfileUseCase = new SetupBusinessProfileUseCase(profileRepo);

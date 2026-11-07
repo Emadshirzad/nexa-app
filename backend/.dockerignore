@@ -1,9 +1,41 @@
-vendor/
-node_modules/
+# Build context for backend/Dockerfile. Everything the runtime does not need
+# stays on the host, which keeps the image small and rebuilds fast.
+
+.git
+.gitattributes
+.gitignore
 .env
+.env.backup
+.env.production
+.env.*
+
+vendor
+node_modules
+public/build
+public/hot
+
+# Runtime state (the container creates its own on the storage volume).
 storage/logs/*
 storage/framework/cache/*
 storage/framework/sessions/*
 storage/framework/views/*
-tests/
+storage/framework/testing/*
+storage/*.key
+storage/pail
+bootstrap/cache/*.php
+
+# Tooling, docs and CI configs are not needed to run the app.
+.editorconfig
+.npmrc
+.php-cs-fixer.cache
+.php-cs-fixer.php
 .phpunit.result.cache
+.phpunit.cache
+.pint.json
+package.json
+tests
+phpunit.xml
+*.log
+README.md
+AGENTS.md
+CLAUDE.md

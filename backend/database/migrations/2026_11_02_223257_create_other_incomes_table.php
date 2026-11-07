@@ -15,7 +15,7 @@ return new class extends Migration
             $table->unsignedBigInteger('amount');
             $table->date('income_date')->index();
             $table->text('description')->nullable();
-            $table->string('payment_method');
+            $table->string('payment_method')->nullable();
             $table->timestamps();
         });
     }

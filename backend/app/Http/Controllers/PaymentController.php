@@ -11,15 +11,12 @@ use Illuminate\Support\Str;
 
 class PaymentController extends Controller
 {
-    /**
-     * Record a payment for an invoice: appends the cash ledger entry
-     * and updates paid amount / outstanding debt atomically.
-     */
     public function store(Request $request, string $invoiceId): JsonResponse
     {
         $invoice = Invoice::findOrFail($invoiceId);
 
         $data = $request->validate([
+            'id' => ['nullable', 'uuid'],
             'amount' => ['required', 'integer', 'min:1'],
             'payment_method' => ['required', 'string', 'in:cash,card_transfer,pos,bank_transfer,other'],
             'payment_date' => ['required', 'date'],
@@ -32,6 +29,7 @@ class PaymentController extends Controller
             $newDebt = max(0, $invoice->final_amount - $newPaid);
 
             $payment = Payment::create([
+                'id' => $data['id'] ?? null,
                 'invoice_id' => $invoice->id,
                 'customer_id' => $invoice->customer_id,
                 'amount' => $data['amount'],
@@ -76,6 +74,27 @@ class PaymentController extends Controller
                 ->orderByDesc('created_at')
                 ->get()
         );
+    }
+
+    public function listByCustomer(string $customerId): JsonResponse
+    {
+        return response()->json(
+            Payment::where('customer_id', $customerId)
+                ->where('is_voided', false)
+                ->orderByDesc('created_at')
+                ->get()
+        );
+    }
+
+    public function listAll(Request $request): JsonResponse
+    {
+        $query = Payment::query()
+            ->when($request->filled('invoice_id'), fn ($q) => $q->where('invoice_id', $request->string('invoice_id')))
+            ->when($request->filled('customer_id'), fn ($q) => $q->where('customer_id', $request->string('customer_id')))
+            ->when(!$request->boolean('include_voided'), fn ($q) => $q->where('is_voided', false))
+            ->orderByDesc('created_at');
+
+        return response()->json($query->get());
     }
 
     public function void(Request $request, string $paymentId): JsonResponse

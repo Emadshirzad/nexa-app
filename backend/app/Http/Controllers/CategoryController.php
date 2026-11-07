@@ -12,18 +12,16 @@ class CategoryController extends Controller
     public function index(Request $request): JsonResponse
     {
         $search = $request->string('q')->trim();
-        $extraFilter = null;
 
-        $rows = Category::query()
-            ->when($extraFilter, function (Builder $q) use ($request) { $extraFilter($q, $request); })
-            ->when($search !== '', fn (Builder $q) => $q->where(function ($w) use ($search) {
-                foreach (['name'] as $field) {
-                    $w->orWhere($field, 'like', '%' . $search . '%');
-                }
-            }))
-            ->orderByDesc('created_at')
-            ->paginate($request->integer('per_page', 50));
+        $query = Category::query()
+            ->when($search !== '', fn (Builder $q) => $q->where('name', 'like', '%' . $search . '%'))
+            ->orderByDesc('created_at');
 
+        if ($request->boolean('all')) {
+            return response()->json($query->get());
+        }
+
+        $rows = $query->paginate($request->integer('per_page', 50));
         return response()->json($rows);
     }
 
@@ -35,7 +33,8 @@ class CategoryController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'name' => ['sometimes', 'string', 'max:120'],
+            'id' => ['nullable', 'uuid'],
+            'name' => ['required', 'string', 'max:120'],
             'color' => ['nullable', 'string', 'max:16'],
             'is_active' => ['nullable', 'boolean'],
         ]);

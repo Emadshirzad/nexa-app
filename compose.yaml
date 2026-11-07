@@ -1,0 +1,256 @@
+name: nexa
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "5m"
+    max-file: "2"
+
+services:
+  mariadb:
+    image: mariadb:lts
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 30s
+    ports:
+      - "${FORWARD_DB_PORT:-3306}:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: "${DB_PASSWORD}"
+      MYSQL_ROOT_HOST: "%"
+      MYSQL_DATABASE: "${DB_DATABASE}"
+      MYSQL_USER: "${DB_USERNAME}"
+      MYSQL_PASSWORD: "${DB_PASSWORD}"
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+    volumes:
+      - "db-data:/var/lib/mysql"
+      - "./.docker/mariadb/create-testing-database.sh:/docker-entrypoint-initdb.d/10-create-testing-database.sh"
+    networks:
+      - nexa
+    healthcheck:
+      test:
+        - CMD
+        - healthcheck.sh
+        - "--connect"
+        - "--innodb_initialized"
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    restart: unless-stopped
+    ports:
+      - "${PHPMYADMIN_PORT:-8082}:80"
+    environment:
+      PMA_HOST: mariadb
+      PMA_USER: "${DB_USERNAME:-root}"
+      PMA_PASSWORD: "${DB_PASSWORD:-secret}"
+      UPLOAD_LIMIT: 2G
+      MEMORY_LIMIT: 2G
+      MAX_EXECUTION_TIME: 6000
+      MAX_INPUT_TIME: 6000
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    networks:
+      - nexa
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: nexa-api:local
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 30s
+
+    depends_on:
+      mariadb:
+        condition: service_healthy
+
+    # Keep .env up to date: cp docker/env.example .env
+    env_file:
+      - ./.env
+    environment:
+      APP_ENV: ${APP_ENV:-production}
+      APP_DEBUG: ${APP_DEBUG:-false}
+      APP_URL: ${APP_URL:-http://localhost:8080}
+      LOG_CHANNEL: stderr
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      DB_CONNECTION: mysql
+      DB_HOST: mariadb
+      DB_PORT: "3306"
+      DB_DATABASE: ${DB_DATABASE:-nexa}
+      DB_USERNAME: ${DB_USERNAME:-nexa}
+      DB_PASSWORD: ${DB_PASSWORD:?set in .env}
+      RUN_MIGRATIONS: ${RUN_MIGRATIONS:-true}
+      # Only api may generate the APP_KEY on a fresh volume; the other
+      # services wait until it shows up in the shared storage volume.
+      KEY_PROVIDER: "1"
+
+    volumes:
+      # Persisted APP_KEY, framework caches and file uploads.
+      - nexa-storage:/var/www/html/storage
+
+    expose:
+      - "9000"
+
+    # Hard ceiling: 256 MB. The FPM pool is set to 3 on-demand workers.
+    mem_limit: ${API_MEM_LIMIT:-256m}
+    mem_reservation: ${API_MEM_RESERVATION:-96m}
+    memswap_limit: ${API_MEM_LIMIT:-256m}
+    cpus: 1.0
+    pids_limit: 128
+
+    security_opt:
+      - no-new-privileges:true
+    logging: *default-logging
+
+    healthcheck:
+      test: ["CMD-SHELL", "php -r 'exit(@fsockopen(\"127.0.0.1\", 9000) ? 0 : 1);'"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+    networks:
+      - nexa
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api/v1}
+    image: nexa-web:local
+    restart: unless-stopped
+    init: true
+
+    depends_on:
+      api:
+        condition: service_healthy
+
+    ports:
+      - "${HTTP_PORT:-8080}:80"
+
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./docker/nginx/fastcgi-params.conf:/etc/nginx/fastcgi-params.conf:ro
+
+    # nginx with one worker: a 48 MB ceiling is plenty.
+    mem_limit: ${WEB_MEM_LIMIT:-48m}
+    mem_reservation: ${WEB_MEM_RESERVATION:-16m}
+    memswap_limit: ${WEB_MEM_LIMIT:-48m}
+    cpus: 0.5
+    pids_limit: 64
+
+    security_opt:
+      - no-new-privileges:true
+    logging: *default-logging
+
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/healthz"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+    networks:
+      - nexa
+
+  worker:
+    image: nexa-api:local
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 30s
+
+    depends_on:
+      api:
+        condition: service_healthy
+
+    env_file:
+      - ./.env
+    environment:
+      APP_ENV: ${APP_ENV:-production}
+      APP_DEBUG: ${APP_DEBUG:-false}
+      APP_URL: ${APP_URL:-http://localhost:8080}
+      LOG_CHANNEL: stderr
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      DB_CONNECTION: mysql
+      DB_HOST: mariadb
+      DB_PORT: "3306"
+      DB_DATABASE: ${DB_DATABASE:-nexa}
+      DB_USERNAME: ${DB_USERNAME:-nexa}
+      DB_PASSWORD: ${DB_PASSWORD:?set in .env}
+      RUN_MIGRATIONS: "false"
+
+    volumes:
+      - nexa-storage:/var/www/html/storage
+
+    command: ["php", "artisan", "queue:work", "--tries=3", "--backoff=5"]
+
+    mem_limit: ${WORKER_MEM_LIMIT:-256m}
+    mem_reservation: ${WORKER_MEM_RESERVATION:-96m}
+    memswap_limit: ${WORKER_MEM_LIMIT:-256m}
+    cpus: 1.0
+    pids_limit: 64
+
+    security_opt:
+      - no-new-privileges:true
+    logging: *default-logging
+
+    networks:
+      - nexa
+
+  scheduler:
+    image: nexa-api:local
+    restart: unless-stopped
+    init: true
+
+    depends_on:
+      api:
+        condition: service_healthy
+
+    env_file:
+      - ./.env
+    environment:
+      APP_ENV: ${APP_ENV:-production}
+      APP_DEBUG: ${APP_DEBUG:-false}
+      APP_URL: ${APP_URL:-http://localhost:8080}
+      LOG_CHANNEL: stderr
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      DB_CONNECTION: mysql
+      DB_HOST: mariadb
+      DB_PORT: "3306"
+      DB_DATABASE: ${DB_DATABASE:-nexa}
+      DB_USERNAME: ${DB_USERNAME:-nexa}
+      DB_PASSWORD: ${DB_PASSWORD:?set in .env}
+      RUN_MIGRATIONS: "false"
+
+    volumes:
+      - nexa-storage:/var/www/html/storage
+
+    command: ["php", "artisan", "schedule:work"]
+
+    mem_limit: ${SCHEDULER_MEM_LIMIT:-128m}
+    mem_reservation: ${SCHEDULER_MEM_RESERVATION:-32m}
+    memswap_limit: ${SCHEDULER_MEM_LIMIT:-128m}
+    cpus: 0.5
+    pids_limit: 48
+
+    security_opt:
+      - no-new-privileges:true
+    logging: *default-logging
+
+    networks:
+      - nexa
+
+volumes:
+  db-data:
+  mariadb:
+  nexa-storage:
+
+networks:
+  nexa:

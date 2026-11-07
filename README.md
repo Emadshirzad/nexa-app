@@ -4,7 +4,7 @@
 nexa/
 ├── frontend/      # Vue 3 web UI (mock data mode, Laravel API integration point)
 ├── backend/       # PHP/Laravel 13 API (MySQL via Docker)
-└── docker-compose.yml
+└── compose.yaml
 ```
 
 ## Quick start (Docker)
@@ -16,6 +16,7 @@ docker compose up --build
 - Frontend: http://localhost:5173 (Vite dev server)
 - Backend API: http://localhost:8080/api/v1
 - MySQL: localhost:3306 (db `nexa`, user `nexa`, pass `nexa_secret`)
+- phpMyAdmin: http://localhost:8082
 
 On first start the backend waits for MySQL, runs migrations, then serves.
 
@@ -32,15 +33,20 @@ CRUD (list supports `?q=search&per_page=50&...filters`):
 | Customers | `/api/v1/customers` (+ filter `tag`, `include_archived`) |
 | Leads | `/api/v1/leads` (+ filter `status`) |
 | Tasks | `/api/v1/tasks` (+ filters `status`, `priority`, `due_today`) |
-| Expenses | `/api/v1/expenses` (+ filters `start_date`, `end_date`) |
+| Expenses | `/api/v1/expenses` (+ filters `start_date`, `end_date`, `category_id`) |
+| Other incomes | `/api/v1/other-incomes` (+ filters `start_date`, `end_date`; cash ledger written on create/delete) |
 | Invoices | `/api/v1/invoices` (+ filters `status`, `customer_id`) |
-| Payments | nested: `GET/POST /invoices/{id}/payments`, `PATCH /payments/{id}/void` |
+| Payments | nested: `GET/POST /invoices/{id}/payments`, `GET /customers/{id}/payments`, `GET /payments`, `PATCH /payments/{id}/void` |
 | Customer notes | nested: `GET/POST /customers/{id}/notes` |
+| Stock movements | `/api/v1/stock-movements` (index `product_id`, store; `GET /stock-movements/reconciled/{productId}`) |
+| Cash ledger | `/api/v1/cash-transactions` (+ `/balance`, `/summary?start_date&end_date`) |
+| Reports | `/api/v1/reports/{dashboard|monthly-trends|top-products|debtors|low-stock|global-search?q=}` |
 | Business profile | `GET/POST /api/v1/business-profile` (upsert) |
 | Settings | `GET/PUT /api/v1/settings/{key}` |
 
-Pagination payloads follow Laravel's paginator format
-(`{ data, links, meta }`). All money amounts are integer Toman.
+List responses use Laravel's default paginator JSON
+(`{ current_page, data, per_page, links, ... }`); pass `?all=1` for a plain
+array. All money amounts are integer Toman.
 
 ## Frontend
 

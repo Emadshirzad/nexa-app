@@ -1,0 +1,6 @@
+[
+  {
+    "type": "sqlite",
+    "path": "/home/emad/Projects/nexa/backend/database/database.sqlite"
+  }
+]
