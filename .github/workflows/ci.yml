@@ -52,6 +52,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Select working Gradle mirror
+        # Wrapper downloads have been refused from some CDNs (services.gradle.org
+        # rate-limits GA runners, Tencent rejects some Azure IPs). Probe a list
+        # and point the wrapper at the first mirror that answers.
+        run: |
+          set -euo pipefail
+          cd android/gradle/wrapper
+          gradle_url="gradle-8.14.3-bin.zip"
+          for u in \
+            "https://services.gradle.org/distributions/$gradle_url" \
+            "https://downloads.gradle.org/distributions/$gradle_url" \
+            "https://mirrors.cloud.tencent.com/gradle/$gradle_url" \
+            "https://repo.huaweicloud.com/gradle/$gradle_url" \
+            "https://mirrors.aliyun.com/gradle/$gradle_url"
+          do
+            echo "probing $u"
+            if curl -fsS --max-time 20 -o /dev/null -r 0-1023 "$u" 2>/dev/null; then
+              echo "Using $u"
+              perl -pi -e "s|^distributionUrl=.*|distributionUrl=$u|" gradle-wrapper.properties
+              exit 0
+            fi
+          done
+          echo "ERROR: no reachable Gradle mirror"
+          exit 1
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -62,6 +87,24 @@ jobs:
           distribution: temurin
           java-version: 21
 
+      - name: Gradle distribution cache
+        # First run downloads the wrapper zip from the probed mirror; later
+        # runs restore the extracted distribution and never touch the network.
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle/wrapper/dists
+          key: gradle-dist-${{ runner.os }}-8.14.3-bin
+        continue-on-error: true
+
+      - name: Gradle dependencies cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/notification
+          key: gradle-deps-${{ runner.os }}-${{ hashFiles('android/**/*.gradle') }}
+          restore-keys: gradle-deps-${{ runner.os }}-
+
       - name: npm ci + build web assets
         run: |
           npm ci
@@ -69,14 +112,6 @@ jobs:
 
       - name: Sync Capacitor
         run: npx cap sync android
-
-      - name: Gradle cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle', 'android/gradle/wrapper/gradle-wrapper.properties') }}
 
       - name: Assemble debug APK
         working-directory: android
