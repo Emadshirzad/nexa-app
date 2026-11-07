@@ -1,0 +1,56 @@
+# Nexa server overrides — irpaymard deployment profile.
+#
+# Used together with compose.yaml:
+#   docker compose -f compose.yaml -f compose.server.yml up -d
+#
+# Differences from the local profile:
+#   - no bundled mariadb/phpMyAdmin: the API talks to the SHARED lemp stack
+#     mariadb container (host `mariadb`, reachable on web_net);
+#   - no published ports: traffic enters through traefik (labels below);
+#   - `web` joins web_net so traefik can reach it, and keeps the private
+#     network so nginx can still proxy /api to api:9000 without CORS;
+#   - volumes db-data / mariadb are gone with their services.
+#
+# The committed .env must NOT exist in the repo: the release directory links
+# the server-owned .env from shared/ (see Envoy.blade.php).
+
+services:
+  # Not needed on the server: the shared lemp mariadb is used instead.
+  mariadb: !reset null
+  phpmyadmin: !reset null
+
+  api:
+    # The base file makes api depend on the (removed) mariadb service.
+    depends_on: !override {}
+    # App URL points at the public traefik origin, not localhost.
+    environment:
+      APP_URL: ${APP_URL:-https://nexa.shirzadd.ir}
+      DB_HOST: ${DB_HOST:-mariadb}
+      DB_PORT: ${DB_PORT:-3306}
+    volumes:
+      # Persisted APP_KEY, oauth-ish state, file uploads and framework caches
+      # (project-scoped name from compose.yaml: nexa_nexa-storage).
+      - nexa-storage:/var/www/html/storage
+    networks: [nexa]
+
+  web:
+    # Disable the direct host-port mapping; traefik is the only entrypoint.
+    ports: !reset null
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=web_net
+      - traefik.http.routers.nexa.rule=Host(`${NEXA_DOMAIN:-nexa.shirzadd.ir}`)
+      - traefik.http.routers.nexa.entrypoints=websecure
+      - traefik.http.routers.nexa.tls=true
+      - traefik.http.routers.nexa.tls.certresolver=mycert
+      - traefik.http.services.nexa.loadbalancer.server.port=80
+    networks: [nexa, web_net]
+
+volumes:
+  # No local database volume on the server.
+  db-data: !reset null
+  mariadb: !reset null
+
+networks:
+  web_net:
+    external: true

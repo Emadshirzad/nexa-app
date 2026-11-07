@@ -24,7 +24,14 @@ RUN npm ci --no-audit --no-fund
 
 COPY . .
 
-RUN npm run build
+# CI deployments ship a prebuilt dist/ in the build context and skip the Vite
+# build here (major win on a small VPS). Local `docker compose build` has no
+# dist/ and falls back to a normal build, so one Dockerfile serves both.
+RUN if [ -s dist/index.html ]; then \
+        echo "Using prebuilt dist/ from the build context"; \
+    else \
+        npm run build; \
+    fi
 
 FROM nginx:1.28-alpine AS runtime
 

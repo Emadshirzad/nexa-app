@@ -1,0 +1,185 @@
+# Nexa CI/CD — GitHub Actions
+#
+# - Every push/PR: backend (phpunit against a throwaway mariadb) + frontend
+#   (vue-tsc + vitest) tests.
+# - Push to master (after tests pass): builds the SPA on the runner, ships it
+#   to irpaymard and deploys through Laravel Envoy.
+#
+# Required GitHub repository secrets:
+#   DEPLOY_SSH_KEY     private half of the nexa CI keypair, generated on the
+#                      server as /home/deploy/nexa/ci_key (ed25519, already in
+#                      /home/deploy/.ssh/authorized_keys)
+#   SSH_KNOWN_HOSTS    output of `ssh-keyscan -H 213.176.7.25` — pinned so a
+#                      MITM between Actions and the VPS fails the deploy
+# Optional (default shown):
+#   DEPLOY_HOST        213.176.7.25
+#   DEPLOY_USER        deploy
+
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  COMPOSER_NO_INTERACTION: "1"
+
+jobs:
+  backend:
+    name: Backend tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      mariadb:
+        image: mariadb:lts
+        ports:
+          - 3306:3306
+        env:
+          MARIADB_ROOT_PASSWORD: secret
+          MARIADB_DATABASE: nexa_testing
+          MARIADB_USER: nexa
+          MARIADB_PASSWORD: test_pass
+        options: >-
+          --health-cmd "healthcheck.sh --connect --innodb_initialized"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: pdo_mysql, mbstring, bcmath, intl, zip
+          tools: composer:v2
+
+      - name: Composer install
+        working-directory: backend
+        run: composer install --prefer-dist --no-progress
+
+      - name: Run tests
+        working-directory: backend
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: "3306"
+          DB_DATABASE: nexa_testing
+          DB_USERNAME: nexa
+          DB_PASSWORD: test_pass
+        run: php artisan test --compact
+
+  frontend:
+    name: Frontend tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: npm ci
+        working-directory: frontend
+        run: npm ci
+
+      - name: Typecheck
+        working-directory: frontend
+        run: npm run typecheck
+
+      - name: Unit tests
+        working-directory: frontend
+        run: npm test
+
+  deploy:
+    name: Deploy production (irpaymard)
+    needs: [backend, frontend]
+    if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    concurrency:
+      group: production
+      cancel-in-progress: false
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      # Build the SPA here — the 2GB VPS should not pay for Vite/terser.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          tools: composer:v2
+      - name: Install Envoy
+        run: composer global require laravel/envoy --no-interaction
+
+      - name: Start SSH agent
+        run: |
+          set -euo pipefail
+          if [ -z "${{ secrets.DEPLOY_SSH_KEY }}" ]; then
+            echo "ERROR: DEPLOY_SSH_KEY secret is not set"
+            exit 1
+          fi
+          eval "$(ssh-agent -s)"
+          echo "SSH_AGENT_PID=$SSH_AGENT_PID" >> "$GITHUB_ENV"
+          echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> "$GITHUB_ENV"
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          ssh-add - <<< "${{ secrets.DEPLOY_SSH_KEY }}"
+          printf '%s\n' "${{ secrets.SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+          {
+            echo "Host irpaymard"
+            echo "  HostName ${DEPLOY_HOST:-213.176.7.25}"
+            echo "  User ${DEPLOY_USER:-deploy}"
+            echo "  StrictHostKeyChecking yes"
+          } > ~/.ssh/config
+          chmod 600 ~/.ssh/config
+
+      - name: Upload prebuilt dist
+        run: |
+          set -euo pipefail
+          tar -C frontend -czf /tmp/dist.tgz dist
+          ssh irpaymard 'mkdir -p /var/www/nexa/shared/dist-incoming'
+          scp /tmp/dist.tgz irpaymard:/tmp/nexa-dist.tgz
+          ssh irpaymard "rm -rf /var/www/nexa/shared/dist-incoming && mkdir -p /var/www/nexa/shared/dist-incoming && tar -C /var/www/nexa/shared/dist-incoming -xzf /tmp/nexa-dist.tgz && rm /tmp/nexa-dist.tgz"
+
+      - name: Envoy deploy
+        run: envoy run deploy --commit="${GITHUB_SHA}"
+
+      - name: Smoke check
+        run: |
+          set -euo pipefail
+          url="https://nexa.shirzadd.ir/api/v1/health"
+          echo "Smoke testing $url"
+          ok=0
+          for i in $(seq 1 12); do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 10 "$url" || true)
+            echo "  attempt $i -> ${code:-no response}"
+            if [ "$code" = "200" ]; then ok=1; break; fi
+            sleep 5
+          done
+          if [ "$ok" != "1" ]; then
+            echo "Health check failed. Roll back on the server with: envoy run rollback (env DEPLOY_SSH_ALIAS=irpaymard)"
+            exit 1
+          fi
+          echo "Health check passed."

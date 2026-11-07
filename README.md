@@ -68,3 +68,31 @@ composer install
 php artisan migrate
 php artisan serve
 ```
+
+## CI/CD (GitHub Actions → irpaymard)
+
+`.github/workflows/ci.yml`:
+
+1. **Tests on every push/PR** — backend phpunit (throwaway mariadb) +
+   frontend `vue-tsc` / vitest.
+2. **Deploy on master** — builds the Vue SPA on the runner, uploads `dist/`,
+   then Laravel Envoy (`Envoy.blade.php`) does a release-per-commit deploy:
+   the server clones the exact commit, links the server-only `.env`,
+   builds `nexa-api:local` / `nexa-web:local`, brings the stack up behind
+   traefik (Host `nexa.shirzadd.ir`) and runs a smoke check afterwards.
+
+One-time provisioning: `backend/deploy/provision-server.sh` on the server
+(dirs, shared `.env`, DB + user, GitHub deploy key, CI keypair). GitHub
+secrets: `DEPLOY_SSH_KEY` (server `/home/deploy/nexa/ci_key` private half) and
+`SSH_KNOWN_HOSTS` (`ssh-keyscan -H 213.176.7.25`).
+
+Manual ops from any machine with the deploy alias:
+
+```bash
+envoy run deploy --commit=<sha>   # deploy a specific commit
+envoy run status                  # docker compose ps on the live release
+```
+
+Server profile: `compose.yaml + compose.server.yml` — no bundled mariadb or
+phpMyAdmin (API uses the shared lemp `mariadb` on web_net), no published ports
+(traefik routes `nexa.shirzadd.ir` → web:80 with TLS via `mycert`).

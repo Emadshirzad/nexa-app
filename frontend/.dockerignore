@@ -3,7 +3,6 @@ node_modules
 .gitignore
 .env
 .env.*
-dist
 coverage
 .vite
 tests
@@ -12,3 +11,6 @@ docs
 !README.md
 .dockerignore
 Dockerfile
+# A prebuilt dist/ (produced by GitHub Actions) is intentionally NOT ignored:
+# when the build context contains one, the Dockerfile reuses it and skips
+# www build entirely, saving minutes on a memory-limited VPS.
