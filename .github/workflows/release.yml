@@ -42,12 +42,16 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install release keystore from secrets
-        # NEXA_KEYSTORE_B64 = keystore file, base64-encoded
-        if: ${{ secrets.NEXA_KEYSTORE_B64 != '' }}
+        # NEXA_KEYSTORE_B64 = keystore file, base64-encoded.
+        # Skipped silently when the secrets are not configured (debug fallback).
+        env:
+          NEXA_KEYSTORE_B64: ${{ secrets.NEXA_KEYSTORE_B64 }}
         run: |
-          mkdir -p keys
-          echo "${{ secrets.NEXA_KEYSTORE_B64 }}" | base64 -d > keys/nexa-release.keystore
-          chmod 600 keys/nexa-release.keystore
+          if [ -n "$NEXA_KEYSTORE_B64" ]; then
+            mkdir -p keys
+            echo "$NEXA_KEYSTORE_B64" | base64 -d > keys/nexa-release.keystore
+            chmod 600 keys/nexa-release.keystore
+          fi
 
       - name: Reassemble vendored Gradle distribution
         # Same reason as CI: runner egress to Gradle CDNs is unreliable,
@@ -112,10 +116,13 @@ jobs:
           echo "file=dist-release/$ARTIFACT_NAME" >> "$GITHUB_OUTPUT"
 
       - name: Verify APK signature
-        if: ${{ secrets.NEXA_KEYSTORE_B64 != '' }}
         run: |
-          BT=$(find "$ANDROID_HOME/build-tools" -maxdepth 1 -type d | sort -V | tail -1)
-          "$BT/apksigner" verify --print-certs android/signed.apk
+          if [ -f keys/nexa-release.keystore ]; then
+            BT=$(find "$ANDROID_HOME/build-tools" -maxdepth 1 -type d | sort -V | tail -1)
+            "$BT/apksigner" verify --print-certs android/signed.apk
+          else
+            echo "No release keystore — debug APK fallback, signature check skipped"
+          fi
 
       - name: Create GitHub Release
         env:
