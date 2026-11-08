@@ -12,22 +12,17 @@ export class DatabaseConnectionFactory {
     }
 
     if (Capacitor.isNativePlatform()) {
-      // 1. Native Android Platform: Capacitor SQLite driver
-      try {
-        const driver = new CapacitorSqliteDriver({
-          databaseName: dbName,
-          encrypted: false,
-          encryptionMode: 'no-encryption'
-        });
-        await driver.initialize();
-        this.instance = driver;
-        return driver;
-      } catch (err) {
-        console.error('Failed to initialize native SQLite driver, falling back:', err);
-        const fallback = new MemorySqliteDriver();
-        this.instance = fallback;
-        return fallback;
-      }
+      // 1. Native Android Platform: Capacitor SQLite driver.
+      // Hard-fail on initialization errors: silently persisting to an
+      // in-memory stub would fake successful writes and lose user data.
+      const driver = new CapacitorSqliteDriver({
+        databaseName: dbName,
+        encrypted: false,
+        encryptionMode: 'no-encryption'
+      });
+      await driver.initialize();
+      this.instance = driver;
+      return driver;
     } else if (typeof window === 'undefined' || (typeof process !== 'undefined' && process.env?.VITEST)) {
       // 2. Node.js / Vitest automated test environment: use BetterSqliteDriver
       const { BetterSqliteDriver } = await import('./BetterSqliteDriver');

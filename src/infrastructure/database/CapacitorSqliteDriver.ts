@@ -49,9 +49,12 @@ export class CapacitorSqliteDriver implements IDatabaseDriver {
       }
 
       await this.db.open();
-      // Enforce foreign key constraints and WAL journal mode
-      await this.db.execute('PRAGMA foreign_keys = ON;');
-      await this.db.execute('PRAGMA journal_mode = WAL;');
+      // Enforce foreign key constraints and WAL journal mode.
+      // Note: PRAGMA journal_mode must be run via query(), execute() wraps
+      // statements in an implicit transaction and SQLite rejects journal
+      // mode changes inside a transaction ("cannot change into wal mode").
+      await this.db.query('PRAGMA foreign_keys = ON;');
+      await this.db.query('PRAGMA journal_mode = WAL;');
     } catch (err) {
       console.error('CapacitorSqliteDriver initialization failed:', err);
       throw err;
