@@ -23,6 +23,15 @@ concurrency:
 permissions:
   contents: write
 
+# Release keystore is committed as an encrypted (age) blob.
+# The private age key lives in the repo secret AGE_KEY, the
+# corresponding public key is referenced in scripts/release-secrets.age.
+env:
+  NEXA_KEYSTORE_PATH: $GITHUB_WORKSPACE/keys/nexa-release.keystore
+  NEXA_KEYSTORE_PASSWORD: ${{ secrets.NEXA_KEYSTORE_PASSWORD }}
+  NEXA_KEY_ALIAS: nexa-crm-release
+  NEXA_KEY_PASSWORD: ${{ secrets.NEXA_KEYSTORE_PASSWORD }}
+
 jobs:
   build-and-release:
     name: Build & publish APK
@@ -30,6 +39,18 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+
+      - name: Decrypt release keystore
+        # scripts/release-secrets.age contains the encrypted keystore.
+        # AGE_KEY = the private age key (repo secret). Falls back to a
+        # debug-signed APK if the secret is not configured yet.
+        if: ${{ secrets.AGE_KEY != '' }}
+        env:
+          AGE_KEY: ${{ secrets.AGE_KEY }}
+        run: |
+          mkdir -p keys
+          echo "$AGE_KEY" | age --decrypt -i - -o keys/nexa-release.keystore scripts/release-secrets.age
+          chmod 600 keys/nexa-release.keystore
 
       - name: Reassemble vendored Gradle distribution
         # Same reason as CI: runner egress to Gradle CDNs is unreliable,
@@ -70,25 +91,42 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
-      - name: Assemble debug APK
+      - name: Assemble signed APK (release) or debug fallback
         working-directory: android
-        run: ./gradlew assembleDebug --no-daemon
+        run: |
+          if [ -f ../keys/nexa-release.keystore ]; then
+            ./gradlew assembleRelease --no-daemon
+            cp app/build/outputs/apk/release/app-release.apk .
+            mv app-release.apk signed.apk
+          else
+            ./gradlew assembleDebug --no-daemon
+            cp app/build/outputs/apk/debug/app-debug.apk .
+            mv app-debug.apk signed.apk
+          fi
 
-      - name: Rename APK
+      - name: Rename APK + checksum
         id: apk
         run: |
-          APK=android/app/build/outputs/apk/debug/app-debug.apk
-          ARTIFACT_NAME="Nexa-${{ github.ref_name }}-debug.apk"
+          APK=android/signed.apk
+          ARTIFACT_NAME="Nexa-${{ github.ref_name }}-release.apk"
           mkdir -p dist-release
           cp "$APK" "dist-release/$ARTIFACT_NAME"
+          sha256sum "$APK" > "dist-release/$ARTIFACT_NAME.sha256"
           echo "file=dist-release/$ARTIFACT_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Verify APK signature
+        if: ${{ secrets.AGE_KEY != '' }}
+        run: |
+          BT=$(find "$ANDROID_HOME/build-tools" -maxdepth 1 -type d | sort -V | tail -1)
+          "$BT/apksigner" verify --print-certs android/signed.apk
 
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "${{ github.ref_name }}" \
-            "${{ steps.apk.outputs.file }}#Nexa CRM (debug APK)" \
+            "${{ steps.apk.outputs.file }}#Nexa CRM release APK" \
+            "${{ steps.apk.outputs.file }}.sha256#SHA-256 checksum" \
             --repo "${{ github.repository }}" \
             --title "${{ github.ref_name }}" \
             --generate-notes
