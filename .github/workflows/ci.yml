@@ -52,30 +52,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Select working Gradle mirror
-        # Wrapper downloads have been refused from some CDNs (services.gradle.org
-        # rate-limits GA runners, Tencent rejects some Azure IPs). Probe a list
-        # and point the wrapper at the first mirror that answers.
-        run: |
-          set -euo pipefail
-          cd android/gradle/wrapper
-          gradle_url="gradle-8.14.3-bin.zip"
-          for u in \
-            "https://services.gradle.org/distributions/$gradle_url" \
-            "https://downloads.gradle.org/distributions/$gradle_url" \
-            "https://mirrors.cloud.tencent.com/gradle/$gradle_url" \
-            "https://repo.huaweicloud.com/gradle/$gradle_url" \
-            "https://mirrors.aliyun.com/gradle/$gradle_url"
-          do
-            echo "probing $u"
-            if curl -fsS --max-time 20 -o /dev/null -r 0-1023 "$u" 2>/dev/null; then
-              echo "Using $u"
-              perl -pi -e "s|^distributionUrl=.*|distributionUrl=$u|" gradle-wrapper.properties
-              exit 0
-            fi
-          done
-          echo "ERROR: no reachable Gradle mirror"
-          exit 1
+      - name: Reassemble vendored Gradle distribution
+        # Runner egress refused connections to every Gradle CDN at least once,
+        # so the distribution ships inside the repo in split parts and is
+        # reconstituted locally; the wrapper then uses a file: URL.
+        run: bash scripts/setup-gradle-dist.sh --ci
 
       - uses: actions/setup-node@v4
         with:

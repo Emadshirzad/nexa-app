@@ -46,3 +46,6 @@ Thumbs.db
 
 # Test coverage
 coverage/
+
+# reassembled by scripts/setup-gradle-dist.sh (132MB > GitHub's 100MB file limit)
+gradle-8.14.3-bin.zip
