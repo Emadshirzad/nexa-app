@@ -28,7 +28,7 @@ permissions:
 #   NEXA_KEYSTORE_PASSWORD   — its password (also used as key password)
 # Falls back to a debug-signed APK if secrets are not configured yet.
 env:
-  NEXA_KEYSTORE_PATH: $GITHUB_WORKSPACE/keys/nexa-release.keystore
+  NEXA_KEYSTORE_PATH: ${{ github.workspace }}/keys/nexa-release.keystore
   NEXA_KEYSTORE_PASSWORD: ${{ secrets.NEXA_KEYSTORE_PASSWORD }}
   NEXA_KEY_ALIAS: nexa-crm-release
   NEXA_KEY_PASSWORD: ${{ secrets.NEXA_KEYSTORE_PASSWORD }}
