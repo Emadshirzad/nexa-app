@@ -1,0 +1,94 @@
+# Nexa release APK — publish a download for users on every version tag.
+#
+# Trigger: push a tag like v1.0.2
+#   git tag v1.0.2 && git push origin v1.0.2
+#
+# Builds the debug APK (debug-signed so it installs without Play Store)
+# and attaches it to a GitHub Release with auto-generated notes.
+#
+# No secrets required (GITHUB_TOKEN is implicit).
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build & publish APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reassemble vendored Gradle distribution
+        # Same reason as CI: runner egress to Gradle CDNs is unreliable,
+        # distribution ships as split parts inside the repo.
+        run: bash scripts/setup-gradle-dist.sh --ci
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Gradle distribution cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle/wrapper/dists
+          key: gradle-dist-${{ runner.os }}-8.14.3-bin
+        continue-on-error: true
+
+      - name: Gradle dependencies cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/notification
+          key: gradle-deps-${{ runner.os }}-${{ hashFiles('android/**/*.gradle') }}
+          restore-keys: gradle-deps-${{ runner.os }}-
+
+      - name: npm ci + build web assets
+        run: |
+          npm ci
+          npm run build
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      - name: Assemble debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Rename APK
+        id: apk
+        run: |
+          APK=android/app/build/outputs/apk/debug/app-debug.apk
+          ARTIFACT_NAME="Nexa-${{ github.ref_name }}-debug.apk"
+          mkdir -p dist-release
+          cp "$APK" "dist-release/$ARTIFACT_NAME"
+          echo "file=dist-release/$ARTIFACT_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            "${{ steps.apk.outputs.file }}#Nexa CRM (debug APK)" \
+            --repo "${{ github.repository }}" \
+            --title "${{ github.ref_name }}" \
+            --generate-notes
