@@ -86,8 +86,12 @@ export class CapacitorSqliteDriver implements IDatabaseDriver {
     this.txDepth++;
     const savepointName = `sp_${this.txDepth}`;
 
+    // Use the plugin's transaction API for the outermost transaction.
+    // Raw "BEGIN TRANSACTION;" / "COMMIT;" via execute() conflicts with the
+    // plugin's own implicit transaction handling and fails with
+    // "Cannot perform this operation because there is no current transaction".
     if (this.txDepth === 1) {
-      await this.db!.execute('BEGIN TRANSACTION;');
+      await this.db!.beginTransaction();
     } else {
       await this.db!.execute(`SAVEPOINT ${savepointName};`);
     }
@@ -95,7 +99,7 @@ export class CapacitorSqliteDriver implements IDatabaseDriver {
     try {
       const result = await action(this);
       if (this.txDepth === 1) {
-        await this.db!.execute('COMMIT;');
+        await this.db!.commitTransaction();
       } else {
         await this.db!.execute(`RELEASE SAVEPOINT ${savepointName};`);
       }
@@ -103,7 +107,7 @@ export class CapacitorSqliteDriver implements IDatabaseDriver {
     } catch (error) {
       try {
         if (this.txDepth === 1) {
-          await this.db!.execute('ROLLBACK;');
+          await this.db!.rollbackTransaction();
         } else {
           await this.db!.execute(`ROLLBACK TO SAVEPOINT ${savepointName};`);
         }

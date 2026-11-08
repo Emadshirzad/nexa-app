@@ -3,6 +3,14 @@
     <AppHeader title="محصولات و کالاها" subtitle="مدیریت کالا، قیمت و انبار" :show-back="true">
       <template #actions>
         <button
+          @click="loadData"
+          type="button"
+          class="p-2 rounded-xl text-graphite-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-graphite-800 active:scale-95 transition-transform"
+          aria-label="به‌روزرسانی فهرست"
+        >
+          <RefreshCw class="w-5 h-5" :class="{ 'animate-spin': isRefreshing }" />
+        </button>
+        <button
           @click="openCreateModal"
           type="button"
           class="p-2 rounded-xl text-emerald hover:bg-emerald-50 dark:hover:bg-emerald-950/60 active:scale-95 transition-transform"
@@ -314,7 +322,7 @@ import { useUIStore } from '@/presentation/stores/uiStore';
 import type { Product, ProductUnit } from '@/domain/entities/Product';
 import type { Category } from '@/domain/entities/Category';
 import type { UUID } from '@/shared/types/common';
-import { Package, Plus, Search, X } from 'lucide-vue-next';
+import { Package, Plus, RefreshCw, Search, X } from 'lucide-vue-next';
 
 const route = useRoute();
 const router = useRouter();
@@ -330,6 +338,7 @@ const showCreateModal = ref(false);
 const showAdjustModal = ref(false);
 const selectedProduct = shallowRef<Product | null>(null);
 const isSubmitting = ref(false);
+const isRefreshing = ref(false);
 
 const unitLabels: Record<string, string> = {
   piece: 'عدد',
@@ -396,8 +405,13 @@ watch(
 );
 
 async function loadData() {
-  categories.value = await container.categoryRepo.listAll();
-  await handleSearch();
+  isRefreshing.value = true;
+  try {
+    categories.value = await container.categoryRepo.listAll();
+    await handleSearch();
+  } finally {
+    isRefreshing.value = false;
+  }
 }
 
 async function handleSearch() {
