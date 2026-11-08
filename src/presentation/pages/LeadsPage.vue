@@ -179,25 +179,21 @@
 
           <div>
             <label class="block font-semibold mb-1 text-graphite-700 dark:text-gray-300">وضعیت پیگیری</label>
-            <select
+            <AppSelect
               v-model="newLead.status"
-              class="w-full h-10 px-3 rounded-xl bg-gray-50 dark:bg-graphite-800 border border-gray-200 dark:border-graphite-700 focus:outline-none focus:border-emerald"
-            >
-              <option value="new">جدید</option>
-              <option value="following_up">در حال پیگیری</option>
-              <option value="interested">علاقه‌مند</option>
-              <option value="unsuccessful">ناموفق</option>
-              <option value="rejected">رد شده</option>
-            </select>
+              :options="[
+                { value: 'new', label: 'جدید' },
+                { value: 'following_up', label: 'در حال پیگیری' },
+                { value: 'interested', label: 'علاقه‌مند' },
+                { value: 'unsuccessful', label: 'ناموفق' },
+                { value: 'rejected', label: 'رد شده' }
+              ]"
+            />
           </div>
 
           <div>
             <label class="block font-semibold mb-1 text-graphite-700 dark:text-gray-300">تاریخ پیگیری بعدی</label>
-            <input
-              v-model="newLead.followUpDate"
-              type="date"
-              class="w-full h-10 px-3 rounded-xl bg-gray-50 dark:bg-graphite-800 border border-gray-200 dark:border-graphite-700 focus:outline-none focus:border-emerald"
-            />
+            <PersianDatePicker v-model="newLead.followUpDate" placeholder="انتخاب تاریخ پیگیری" />
           </div>
 
           <div>
@@ -287,6 +283,8 @@
 import { ref, computed, shallowRef, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import AppHeader from '@/presentation/components/common/AppHeader.vue';
+import PersianDatePicker from '@/presentation/components/common/PersianDatePicker.vue';
+import AppSelect from '@/presentation/components/common/AppSelect.vue';
 import {
   UserCheck,
   Plus,
@@ -326,7 +324,7 @@ const newLead = ref<{
   mobile: string;
   status: LeadStatus;
   description: string;
-  followUpDate: string;
+  followUpDate: string | null;
 }>({
   name: '',
   mobile: '',

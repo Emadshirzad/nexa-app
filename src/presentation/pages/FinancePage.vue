@@ -190,23 +190,14 @@
           <div class="grid grid-cols-2 gap-2">
             <div>
               <label class="block font-semibold mb-1 text-graphite-700 dark:text-gray-300">تاریخ پرداخت</label>
-              <input
-                v-model="newExpense.expenseDate"
-                type="date"
-                class="w-full h-10 px-3 rounded-xl bg-gray-50 dark:bg-graphite-800 border border-gray-200 dark:border-graphite-700 focus:outline-none focus:border-red-500"
-              />
+              <PersianDatePicker v-model="newExpense.expenseDate" placeholder="انتخاب تاریخ پرداخت" />
             </div>
             <div>
               <label class="block font-semibold mb-1 text-graphite-700 dark:text-gray-300">روش پرداخت</label>
-              <select
+              <AppSelect
                 v-model="newExpense.paymentMethod"
-                class="w-full h-10 px-2 rounded-xl bg-gray-50 dark:bg-graphite-800 border border-gray-200 dark:border-graphite-700 focus:outline-none focus:border-red-500"
-              >
-                <option value="cash">نقدی</option>
-                <option value="card_transfer">کارت به کارت</option>
-                <option value="pos">دستگاه پوز</option>
-                <option value="bank_transfer">حواله پایا/ساتنا</option>
-              </select>
+                :options="PAYMENT_METHODS"
+              />
             </div>
           </div>
 
@@ -288,23 +279,14 @@
           <div class="grid grid-cols-2 gap-2">
             <div>
               <label class="block font-semibold mb-1 text-graphite-700 dark:text-gray-300">تاریخ دریافت</label>
-              <input
-                v-model="newIncome.incomeDate"
-                type="date"
-                class="w-full h-10 px-3 rounded-xl bg-gray-50 dark:bg-graphite-800 border border-gray-200 dark:border-graphite-700 focus:outline-none focus:border-emerald"
-              />
+              <PersianDatePicker v-model="newIncome.incomeDate" placeholder="انتخاب تاریخ دریافت" />
             </div>
             <div>
               <label class="block font-semibold mb-1 text-graphite-700 dark:text-gray-300">روش دریافت</label>
-              <select
+              <AppSelect
                 v-model="newIncome.paymentMethod"
-                class="w-full h-10 px-2 rounded-xl bg-gray-50 dark:bg-graphite-800 border border-gray-200 dark:border-graphite-700 focus:outline-none focus:border-emerald"
-              >
-                <option value="cash">نقدی</option>
-                <option value="card_transfer">کارت به کارت</option>
-                <option value="pos">دستگاه پوز</option>
-                <option value="bank_transfer">حواله پایا/ساتنا</option>
-              </select>
+                :options="PAYMENT_METHODS"
+              />
             </div>
           </div>
 
@@ -348,6 +330,15 @@
 <script setup lang="ts">
 import { ref, computed, shallowRef, onMounted } from 'vue';
 import AppHeader from '@/presentation/components/common/AppHeader.vue';
+import PersianDatePicker from '@/presentation/components/common/PersianDatePicker.vue';
+import AppSelect from '@/presentation/components/common/AppSelect.vue';
+
+const PAYMENT_METHODS = [
+  { value: 'cash', label: 'نقدی' },
+  { value: 'card_transfer', label: 'کارت به کارت' },
+  { value: 'pos', label: 'دستگاه پوز' },
+  { value: 'bank_transfer', label: 'حواله پایا/ساتنا' }
+];
 import {
   Wallet,
   Plus,
@@ -387,7 +378,7 @@ const incomeError = ref('');
 const newExpense = ref<{
   title: string;
   amount: number;
-  expenseDate: string;
+  expenseDate: string | null;
   paymentMethod: 'cash' | 'card_transfer' | 'pos' | 'bank_transfer';
   description: string;
 }>({
@@ -401,7 +392,7 @@ const newExpense = ref<{
 const newIncome = ref<{
   title: string;
   amount: number;
-  incomeDate: string;
+  incomeDate: string | null;
   paymentMethod: 'cash' | 'card_transfer' | 'pos' | 'bank_transfer';
   description: string;
 }>({
@@ -501,7 +492,7 @@ async function submitExpense() {
     const res = await container.recordExpenseUseCase.execute({
       title: newExpense.value.title,
       amount: newExpense.value.amount,
-      expenseDate: newExpense.value.expenseDate,
+      expenseDate: newExpense.value.expenseDate || '',
       paymentMethod: newExpense.value.paymentMethod,
       description: newExpense.value.description
     });
@@ -540,7 +531,7 @@ async function submitIncome() {
     const res = await container.recordOtherIncomeUseCase.execute({
       title: newIncome.value.title,
       amount: newIncome.value.amount,
-      incomeDate: newIncome.value.incomeDate,
+      incomeDate: newIncome.value.incomeDate || '',
       paymentMethod: newIncome.value.paymentMethod,
       description: newIncome.value.description
     });

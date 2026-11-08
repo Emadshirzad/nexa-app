@@ -176,14 +176,10 @@
 
             <div>
               <label class="block font-bold text-gray-700 dark:text-gray-300 mb-1">واحد شمارش</label>
-              <select
+              <AppSelect
                 v-model="newForm.unit"
-                class="w-full h-10 px-3 rounded-xl bg-gray-50 dark:bg-graphite-800 border border-gray-200 dark:border-graphite-700 focus:outline-none focus:border-emerald"
-              >
-                <option v-for="(label, val) in unitLabels" :key="val" :value="val">
-                  {{ label }}
-                </option>
-              </select>
+                :options="unitOptions"
+              />
             </div>
           </div>
 
@@ -317,6 +313,7 @@
 import { ref, shallowRef, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AppHeader from '@/presentation/components/common/AppHeader.vue';
+import AppSelect from '@/presentation/components/common/AppSelect.vue';
 import { useContainer } from '@/presentation/composables/useContainer';
 import { useUIStore } from '@/presentation/stores/uiStore';
 import type { Product, ProductUnit } from '@/domain/entities/Product';
@@ -350,6 +347,8 @@ const unitLabels: Record<string, string> = {
   box: 'جعبه',
   carton: 'کارتن'
 };
+
+const unitOptions = Object.entries(unitLabels).map(([value, label]) => ({ value, label }));
 
 const newForm = ref({
   name: '',

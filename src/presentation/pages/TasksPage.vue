@@ -165,21 +165,17 @@
           <div class="grid grid-cols-2 gap-2">
             <div>
               <label class="block font-semibold mb-1 text-graphite-700 dark:text-gray-300">موعد انجام *</label>
-              <input
-                v-model="newTask.dueDate"
-                type="date"
-                class="w-full h-10 px-3 rounded-xl bg-gray-50 dark:bg-graphite-800 border border-gray-200 dark:border-graphite-700 focus:outline-none focus:border-emerald"
-              />
+              <PersianDatePicker v-model="newTask.dueDate" placeholder="انتخاب تاریخ انجام" />
             </div>
             <div>
               <label class="block font-semibold mb-1 text-graphite-700 dark:text-gray-300">اولویت</label>
-              <select
+              <AppSelect
                 v-model="newTask.priority"
-                class="w-full h-10 px-3 rounded-xl bg-gray-50 dark:bg-graphite-800 border border-gray-200 dark:border-graphite-700 focus:outline-none focus:border-emerald"
-              >
-                <option value="normal">عادی</option>
-                <option value="urgent">فوری ⚠️</option>
-              </select>
+                :options="[
+                  { value: 'normal', label: 'عادی' },
+                  { value: 'urgent', label: 'فوری ⚠️' }
+                ]"
+              />
             </div>
           </div>
 
@@ -223,6 +219,8 @@
 <script setup lang="ts">
 import { ref, computed, shallowRef, onMounted } from 'vue';
 import AppHeader from '@/presentation/components/common/AppHeader.vue';
+import PersianDatePicker from '@/presentation/components/common/PersianDatePicker.vue';
+import AppSelect from '@/presentation/components/common/AppSelect.vue';
 import {
   CheckSquare,
   Plus,
@@ -255,7 +253,7 @@ const createError = ref('');
 const newTask = ref<{
   title: string;
   description: string;
-  dueDate: string;
+  dueDate: string | null;
   priority: TaskPriority;
 }>({
   title: '',
@@ -362,7 +360,7 @@ async function submitCreateTask() {
     const res = await container.createTaskUseCase.execute({
       title: newTask.value.title,
       description: newTask.value.description,
-      dueDate: newTask.value.dueDate,
+      dueDate: newTask.value.dueDate || '',
       priority: newTask.value.priority
     });
 

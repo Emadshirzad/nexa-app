@@ -160,26 +160,17 @@
               <label class="block text-xs font-semibold text-graphite-700 dark:text-gray-300 mb-1">
                 انتخاب مشتری
               </label>
-              <select
+              <AppSelect
                 v-model="newInvoice.customerId"
-                class="w-full h-11 px-3 rounded-2xl bg-gray-50 dark:bg-graphite-800 border border-gray-200 dark:border-graphite-700 text-xs focus:outline-none focus:border-emerald"
-              >
-                <option :value="null">مشتری عمومی / نقدی</option>
-                <option v-for="c in customers" :key="c.id" :value="c.id">
-                  {{ c.name }} ({{ c.mobile }})
-                </option>
-              </select>
+                :options="customerOptions"
+              />
             </div>
 
             <div>
               <label class="block text-xs font-semibold text-graphite-700 dark:text-gray-300 mb-1">
                 تاریخ فاکتور
               </label>
-              <input
-                v-model="newInvoice.invoiceDate"
-                type="date"
-                class="w-full h-11 px-3 rounded-2xl bg-gray-50 dark:bg-graphite-800 border border-gray-200 dark:border-graphite-700 text-xs focus:outline-none focus:border-emerald"
-              />
+              <PersianDatePicker v-model="newInvoice.invoiceDate" placeholder="انتخاب تاریخ فاکتور" />
             </div>
           </div>
 
@@ -218,15 +209,12 @@
 
               <!-- Product selector or manual name -->
               <div>
-                <select
-                  @change="onProductSelect(idx, $event)"
-                  class="w-full h-10 px-3 rounded-xl bg-white dark:bg-graphite-900 border border-gray-200 dark:border-graphite-700 text-xs focus:outline-none focus:border-emerald"
-                >
-                  <option value="">-- انتخاب از کاتالوگ یا وارد کردن دستی --</option>
-                  <option v-for="p in products" :key="p.id" :value="p.id">
-                    {{ p.name }} - {{ p.sellingPrice.format() }} (موجودی: {{ p.stockQuantity.toDecimal() }})
-                  </option>
-                </select>
+                <AppSelect
+                  :model-value="item.productId ?? null"
+                  :options="productCatalogOptions"
+                  placeholder="-- انتخاب از کاتالوگ یا وارد کردن دستی --"
+                  @update:model-value="(val) => onSelectProduct(idx, val)"
+                />
               </div>
 
               <div class="grid grid-cols-2 gap-2">
@@ -326,15 +314,16 @@
                 />
               </div>
               <div>
-                <select
-                  v-model="upfrontMethod"
-                  class="w-full h-9 px-2 rounded-xl bg-white dark:bg-graphite-900 border border-gray-200 dark:border-graphite-700 text-xs focus:outline-none focus:border-emerald"
-                >
-                  <option value="cash">نقدی</option>
-                  <option value="card_transfer">کارت به کارت</option>
-                  <option value="pos">دستگاه پوز</option>
-                  <option value="bank_transfer">حواله پایا/ساتنا</option>
-                </select>
+                <AppSelect
+                  :model-value="upfrontMethod"
+                  :options="[
+                    { value: 'cash', label: 'نقدی' },
+                    { value: 'card_transfer', label: 'کارت به کارت' },
+                    { value: 'pos', label: 'دستگاه پوز' },
+                    { value: 'bank_transfer', label: 'حواله پایا/ساتنا' }
+                  ]"
+                  @update:model-value="(v) => (upfrontMethod = v as 'cash' | 'card_transfer' | 'pos' | 'bank_transfer' | 'other')"
+                />
               </div>
             </div>
           </div>
@@ -540,15 +529,16 @@
             <label class="block text-xs font-semibold text-graphite-700 dark:text-gray-300 mb-1">
               روش پرداخت
             </label>
-            <select
-              v-model="paymentMethod"
-              class="w-full h-10 px-3 rounded-xl bg-gray-50 dark:bg-graphite-800 border border-gray-200 dark:border-graphite-700 text-xs focus:outline-none focus:border-emerald"
-            >
-              <option value="cash">نقدی</option>
-              <option value="card_transfer">کارت به کارت</option>
-              <option value="pos">دستگاه پوز</option>
-              <option value="bank_transfer">حواله پایا/ساتنا</option>
-            </select>
+            <AppSelect
+              :model-value="paymentMethod"
+              :options="[
+                { value: 'cash', label: 'نقدی' },
+                { value: 'card_transfer', label: 'کارت به کارت' },
+                { value: 'pos', label: 'دستگاه پوز' },
+                { value: 'bank_transfer', label: 'حواله پایا/ساتنا' }
+              ]"
+              @update:model-value="(v) => (paymentMethod = v as 'cash' | 'card_transfer' | 'pos' | 'bank_transfer' | 'other')"
+            />
           </div>
         </div>
 
@@ -625,6 +615,8 @@
 import { ref, computed, shallowRef, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AppHeader from '@/presentation/components/common/AppHeader.vue';
+import PersianDatePicker from '@/presentation/components/common/PersianDatePicker.vue';
+import AppSelect from '@/presentation/components/common/AppSelect.vue';
 import {
   Receipt,
   Plus,
@@ -672,7 +664,7 @@ const selectedInvoice = shallowRef<Invoice | null>(null);
 const showPaymentModal = ref(false);
 const paymentTargetInvoice = shallowRef<Invoice | null>(null);
 const paymentAmount = ref(0);
-const paymentMethod = ref<'cash' | 'card_transfer' | 'pos' | 'bank_transfer'>('cash');
+const paymentMethod = ref<'cash' | 'card_transfer' | 'pos' | 'bank_transfer' | 'other'>('cash');
 
 const showCancelModal = ref(false);
 const cancelTargetInvoice = shallowRef<Invoice | null>(null);
@@ -704,9 +696,21 @@ const newInvoice = ref<{
   notes: ''
 });
 
+const customerOptions = computed(() => [
+  { value: null, label: 'مشتری عمومی / نقدی' },
+  ...customers.value.map((c) => ({ value: c.id, label: `${c.name} (${c.mobile})` }))
+]);
+
+const productCatalogOptions = computed(() =>
+  products.value.map((p) => ({
+    value: p.id,
+    label: `${p.name} - ${p.sellingPrice.format()} (موجودی: ${p.stockQuantity.toDecimal()})`
+  }))
+);
+
 const hasUpfrontPayment = ref(false);
 const upfrontAmount = ref(0);
-const upfrontMethod = ref<'cash' | 'card_transfer' | 'pos' | 'bank_transfer'>('cash');
+const upfrontMethod = ref<'cash' | 'card_transfer' | 'pos' | 'bank_transfer' | 'other'>('cash');
 
 async function loadData() {
   isLoading.value = true;
@@ -836,10 +840,9 @@ function removeItemRow(index: number) {
   newInvoice.value.items.splice(index, 1);
 }
 
-function onProductSelect(index: number, event: Event) {
-  const prodId = (event.target as HTMLSelectElement).value;
-  if (!prodId) return;
-  const prod = products.value.find((p) => p.id === prodId);
+function onSelectProduct(index: number, value: string | number | null) {
+  if (!value) return;
+  const prod = products.value.find((p) => p.id === value);
   if (prod) {
     newInvoice.value.items[index] = {
       productId: prod.id,
@@ -879,7 +882,7 @@ async function submitCreateInvoice() {
     const container = getAppContainer();
     const res = await container.createInvoiceUseCase.execute({
       customerId: newInvoice.value.customerId,
-      invoiceDate: newInvoice.value.invoiceDate,
+      invoiceDate: newInvoice.value.invoiceDate || new Date().toISOString().slice(0, 10),
       items: newInvoice.value.items.map((it) => ({
         productId: it.productId,
         name: it.name,

@@ -77,25 +77,17 @@
             <div class="grid grid-cols-2 gap-3 pt-1">
               <div>
                 <label class="block text-[10px] text-gray-500 mb-1 font-bold">شروع سکوت (ساعت شب)</label>
-                <select
-                  v-model.number="quietHoursStart"
-                  class="w-full h-9 px-2.5 rounded-xl bg-white dark:bg-graphite-700 border border-gray-200 dark:border-graphite-600 text-xs focus:outline-none focus:border-emerald font-bold"
-                >
-                  <option v-for="h in [20, 21, 22, 23, 0]" :key="h" :value="h">
-                    {{ h === 0 ? '۰۰:۰۰ (بامداد)' : `${h}:۰۰` }}
-                  </option>
-                </select>
+                <AppSelect
+                  v-model="quietHoursStart"
+                  :options="quietStartOptions"
+                />
               </div>
               <div>
                 <label class="block text-[10px] text-gray-500 mb-1 font-bold">پایان سکوت (ساعت صبح)</label>
-                <select
-                  v-model.number="quietHoursEnd"
-                  class="w-full h-9 px-2.5 rounded-xl bg-white dark:bg-graphite-700 border border-gray-200 dark:border-graphite-600 text-xs focus:outline-none focus:border-emerald font-bold"
-                >
-                  <option v-for="h in [6, 7, 8, 9, 10]" :key="h" :value="h">
-                    {{ h }}:۰۰ صبح
-                  </option>
-                </select>
+                <AppSelect
+                  v-model="quietHoursEnd"
+                  :options="quietEndOptions"
+                />
               </div>
             </div>
 
@@ -391,7 +383,9 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
+import { toPersianDigits } from '@/shared/utils/jalali';
 import AppHeader from '@/presentation/components/common/AppHeader.vue';
+import AppSelect from '@/presentation/components/common/AppSelect.vue';
 import { useUIStore, AppTheme, AppFontSize } from '@/presentation/stores/uiStore';
 import { useContainer } from '@/presentation/composables/useContainer';
 import type { BusinessProfile } from '@/domain/entities/BusinessProfile';
@@ -427,6 +421,16 @@ const fontSizeOptions = [
 const notificationsEnabled = ref(true);
 const quietHoursStart = ref(22);
 const quietHoursEnd = ref(8);
+
+const quietStartOptions = [20, 21, 22, 23, 0].map((h) => ({
+  value: h,
+  label: h === 0 ? '۰۰:۰۰ (بامداد)' : `${toPersianDigits(h)}:۰۰`
+}));
+
+const quietEndOptions = [6, 7, 8, 9, 10].map((h) => ({
+  value: h,
+  label: `${toPersianDigits(h)}:۰۰ صبح`
+}));
 const isSavingNotifications = ref(false);
 
 // Backup / Restore State
