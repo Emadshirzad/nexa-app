@@ -63,7 +63,8 @@ export class CapacitorSqliteDriver implements IDatabaseDriver {
 
   public async execute(sql: string): Promise<void> {
     await this.ensureOpen();
-    await this.db!.execute(sql);
+    // transaction=false: no implicit native transaction, manual control
+    await this.db!.execute(sql, false);
   }
 
   public async query<T = Record<string, unknown>>(sql: string, params: unknown[] = []): Promise<T[]> {
@@ -74,7 +75,8 @@ export class CapacitorSqliteDriver implements IDatabaseDriver {
 
   public async run(sql: string, params: unknown[] = []): Promise<{ changes: number; lastInsertRowId?: number }> {
     await this.ensureOpen();
-    const res = await this.db!.run(sql, params);
+    // transaction=false: no implicit native transaction, manual control
+    const res = await this.db!.run(sql, params, false);
     return {
       changes: res.changes?.changes || 0,
       lastInsertRowId: res.changes?.lastId
@@ -86,30 +88,29 @@ export class CapacitorSqliteDriver implements IDatabaseDriver {
     this.txDepth++;
     const savepointName = `sp_${this.txDepth}`;
 
-    // Use the plugin's transaction API for the outermost transaction.
-    // Raw "BEGIN TRANSACTION;" / "COMMIT;" via execute() conflicts with the
-    // plugin's own implicit transaction handling and fails with
-    // "Cannot perform this operation because there is no current transaction".
+    // Manual transaction control with transaction=false flags on every
+    // statement. The plugin wraps run()/execute() in its own implicit
+    // transaction by default, which breaks explicit BEGIN/COMMIT.
     if (this.txDepth === 1) {
-      await this.db!.beginTransaction();
+      await this.db!.execute('BEGIN TRANSACTION;', false);
     } else {
-      await this.db!.execute(`SAVEPOINT ${savepointName};`);
+      await this.db!.execute(`SAVEPOINT ${savepointName};`, false);
     }
 
     try {
       const result = await action(this);
       if (this.txDepth === 1) {
-        await this.db!.commitTransaction();
+        await this.db!.execute('COMMIT;', false);
       } else {
-        await this.db!.execute(`RELEASE SAVEPOINT ${savepointName};`);
+        await this.db!.execute(`RELEASE SAVEPOINT ${savepointName};`, false);
       }
       return result;
     } catch (error) {
       try {
         if (this.txDepth === 1) {
-          await this.db!.rollbackTransaction();
+          await this.db!.execute('ROLLBACK;', false);
         } else {
-          await this.db!.execute(`ROLLBACK TO SAVEPOINT ${savepointName};`);
+          await this.db!.execute(`ROLLBACK TO SAVEPOINT ${savepointName};`, false);
         }
       } catch {
         // Rollback error ignored
